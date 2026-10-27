@@ -27,6 +27,10 @@
     const f = OPS[op.op];
     if (!f) { this.log('(ไม่รองรับ op ' + op.op + ')'); return; }
     await f(this, op, ctx);
+    if (op.as) {
+      ctx.results = ctx.results || {};
+      if (!(op.as in ctx.results)) ctx.results[op.as] = (ctx.chosen[op.as] || []).length > 0;
+    }
     this.checkEnd();
   };
 
@@ -90,6 +94,8 @@
   /* ---------------------------------------------------------------- */
   /* ability use limits / costs */
   G.limitOk = function (c, ab) {
+    const nl = this.nameLimit(c, ab);
+    if (nl && ((this.nameUses && this.nameUses[nl.key + '|' + this.turn]) || 0) >= nl.n) return false;
     const lim = ab.limit;
     if (lim) {
       const u = c.used[ab.id];
@@ -104,7 +110,18 @@
     }
     return true;
   };
+  /* "#สามารถใช้ความสามารถของ Avatar ชื่อ X ได้ เทิร์นละ 1 ครั้ง" - a per-name limit shared by every copy */
+  G.nameLimit = function (c, ab) {
+    if (['rule', 'keyword', 'continuous', 'equipRestriction', 'partner', 'lifeReveal'].includes(ab.kind)) return null;
+    for (const r of this.db.byCard[c.id] || []) {
+      if (r.kind !== 'rule') continue;
+      for (const e of r.effects || []) if (e.op === 'rule.abilityUseLimit' && e.per === 'turn' && this.namesOf(c).includes(e.name)) return { key: c.ctrl + '|' + e.name, n: e.n || 1 };
+    }
+    return null;
+  };
   G.markUsed = function (c, ab) {
+    const nl = this.nameLimit(c, ab);
+    if (nl) { this.nameUses = this.nameUses || {}; const k = nl.key + '|' + this.turn; this.nameUses[k] = (this.nameUses[k] || 0) + 1; }
     const u = c.used[ab.id];
     if (u && (ab.limit && ab.limit.per === 'game' || u.turn === this.turn)) u.n++;
     else c.used[ab.id] = { turn: this.turn, n: 1 };
@@ -203,7 +220,9 @@
     c.faceUp = true;
     this.log(`${pl.name} LIFE ถูกหงาย: ${c.def.name}`);
     if (opts.triggers !== false) {
-      await this.fire(opts.byAttack ? 'self.revealedByAttack' : 'self.revealedByDamage', { self: c, card: c, triggerCard: c, attacker: opts.attacker, side: pi });
+      const lev = { self: c, card: c, triggerCard: c, attacker: opts.attacker, side: pi };
+      await this.fire('self.revealedByAttack', lev);
+      if (!opts.byAttack) await this.fire('self.revealedByDamage', lev);
     }
     await this.fire('any.lifeRevealed', { side: pi, byAttack: !!opts.byAttack, card: c, triggerCard: c, attacker: opts.attacker });
     return c;
@@ -314,7 +333,9 @@
     const opts = ab.modes.filter(m => this.condAll(m.conditions, ctx) && this.feasible(m.effects, ctx));
     if (!opts.length) return;
     let pick = opts[0];
-    if (opts.length > 1) {
+    const both = opts.find(m => /\+/.test(String(m.label)));
+    if (both) pick = both;
+    else if (opts.length > 1) {
       const ids = await this.ask(ctx.controller, { kind: 'options', prompt: 'เลือกความสามารถ', options: opts.map((m, i) => ({ id: i, label: m.label })), min: 1, max: 1, ctxCard: ctx.src.uid });
       pick = opts[ids[0]] || opts[0];
     }
@@ -529,7 +550,7 @@
       } else {
         await g.summonCard(c, { side: sideIdx, asJuti: op.asJuti, state: op.state, byAbilityOf: ctx.src });
       }
-      if (op.as) (ctx.chosen[op.as] = ctx.chosen[op.as] || []).push(c);
+      if (op.as && c.zone === 'avatarZone') (ctx.chosen[op.as] = ctx.chosen[op.as] || []).push(c);
     }
     ctx.lastMoved = cs;
   };
@@ -620,7 +641,9 @@
     const cs = await g.select(op.target, ctx, 'static');
     if (cs.includes(rec.card)) { rec.prevented = true; g.log(`${rec.card.def.name} ไม่ถูกทำลาย`); }
   };
+  OPS.select = async (g, op, ctx) => { await g.select(op.target, ctx, 'help'); };
   OPS.restrict = async (g, op, ctx) => {
+    if (op.filter && (op.filter.sameAs || op.filter.notSameAs)) op = Object.assign({}, op, { filter: g.resolveSame(op.filter, ctx) });
     if (op.target) {
       for (const c of await g.select(op.target, ctx, 'harm')) g.addMod(c, { kind: 'restrict', action: op.action, filter: op.filter, until: durOf(op), owner: ctx.controller, srcCard: ctx.src });
     } else {
@@ -702,7 +725,11 @@
     if (!this.delayed || !this.delayed.length) return;
     const due = this.delayed.filter(d => d.at === at);
     this.delayed = this.delayed.filter(d => d.at !== at);
-    for (const d of due) await this.runOps(d.effects, d.ctx);
+    for (const d of due) {
+      const f0 = d.effects[0];
+      if (f0 && f0.op === 'move' && f0.target && f0.target.ref === 'this' && d.ctx.src && !this.isOnField(d.ctx.src)) continue;
+      await this.runOps(d.effects, d.ctx);
+    }
   };
 
   /* rule.* ops are passive */

@@ -40,6 +40,14 @@
     return pay;
   };
 
+  /* a card with "ใช้เป็น Cost ได้เฉพาะ ..." can only pay for matching cards */
+  G.payerAllowed = function (payer, target) {
+    for (const ab of this.abilitiesOf(payer, true)) for (const e of ab.effects || []) {
+      if (e.op === 'rule.costPaymentOnlyFor' && !this.matchFilter(target, e.filter, { src: payer, controller: payer.ctrl, chosen: {}, trigger: {} })) return false;
+    }
+    return true;
+  };
+
   /* ---------- magic quota ---------- */
   /* A React that counters opposing React Magic (e.g. "อย่าให้มีครั้งที่ 2") can be used even
      * when this turn's React quota is already spent. It does not consume the quota. */
@@ -144,6 +152,32 @@
     if (item.negated) await this.sendTo(c, 'hell', { cause: 'magic' }); else await this.placeLand(pi, c);
   };
 
+  /* Modification Magic: used in Main Phase by attaching it to an Avatar on our Avatar Zone. */
+  G.modHosts = function (pi, c) {
+    if (this.phase !== 'main' || this.active !== pi) return [];
+    if (!this.quotaAvailable(pi, c) || this.playerCardRestricted(pi, 'useMagic', c)) return [];
+    for (const ab of this.abilitiesOf(c, true)) for (const e of ab.effects || []) if (e.op === 'rule.cannotPlayFromHand') return [];
+    return this.players[pi].avatarZone.filter(h => isAv(h) && this.canEquip(c, h));
+  };
+  G.playModification = async function (pi, c) {
+    const hosts = this.modHosts(pi, c);
+    if (!hosts.length) return;
+    let host = hosts[0];
+    if (hosts.length > 1) {
+      const ids = await this.ask(pi, { kind: 'pick', prompt: 'เลือก Avatar ที่จะสวมใส่ ' + c.def.name, cards: hosts.map(h => h.uid), min: 1, max: 1, hint: 'help', ctxCard: c.uid });
+      host = hosts.find(h => h.uid === ids[0]) || hosts[0];
+    }
+    this.consumeQuota(pi, c);
+    this.removeFromZone(c); c.zone = 'limbo'; this.bump();
+    const item = { card: c, ab: null, controller: pi, negated: false, isMagic: true };
+    this.stack.push(item);
+    try {
+      this.log(`${this.players[pi].name} ใช้ Modification Magic: ${c.def.name}`);
+      await this.event('any.magicUsed', { side: pi, actor: pi, triggerCard: c, self: c, magicType: 'Modification', item, sourceCard: c, info: c.def.name });
+    } finally { this.stack.pop(); }
+    if (item.negated || !this.isOnField(host) || !(await this.equipCard(c, host, {}))) await this.sendTo(c, 'hell', { cause: 'magic' });
+  };
+
   G.buildCard = async function (pi, c, o) {
     o = o || {};
     const pl = this.players[pi];
@@ -217,6 +251,7 @@
         if (c.def.magicType === 'Land') {
           if (this.quotaAvailable(pi, c) && !this.playerCardRestricted(pi, 'playLand', c) && !this.playerCardRestricted(pi, 'useMagic', c)) add({ type: 'land', card: c, label: 'วาง Land ' + c.def.name });
         }
+        if (c.def.magicType === 'Modification' && this.modHosts(pi, c).length) add({ type: 'modify', card: c, label: 'สวมใส่ ' + c.def.name });
         for (const ab of this.abilitiesOf(c)) {
           if (ab.kind === 'spell' && this.timingOk(ab, pi) && this.canUseAbility(pi, c, ab, {})) add({ type: 'spell', card: c, ab, label: 'ใช้ ' + c.def.name });
         }
@@ -265,6 +300,7 @@
         break;
       }
       case 'land': await this.playLandCard(pi, a.card); break;
+      case 'modify': await this.playModification(pi, a.card); break;
       case 'spell': case 'activate': await this.useAbility(pi, a.card, a.ab, {}); break;
       case 'partner': {
         const pairs = this.partnerPairs(pi);
@@ -296,7 +332,7 @@
     return out;
   };
   G.possibleAttackers = function (pi) {
-    return this.players[pi].avatarZone.filter(c => isAv(c) && c.state === 'awake' && !this.cardRestricted(c, 'attack') && this.attackTargets(c).length > 0);
+    return this.players[pi].avatarZone.filter(c => isAv(c) && c.state === 'awake' && !this.cardRestricted(c, 'attack') && !this.playerCardRestricted(pi, 'attack', c) && this.attackTargets(c).length > 0);
   };
   G.helpersFor = function (att) {
     return this.players[att.ctrl].avatarZone.filter(c => c !== att && c.state === 'awake' && isAv(c) && (this.hasKw(c, 'สามัคคี') || this.hasKw(c, 'แทงหลัง')));

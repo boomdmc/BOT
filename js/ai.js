@@ -77,7 +77,7 @@
           const acts = req.actions;
           const end = acts.find(a => a.type === 'endPhase');
           if (st.count > 30) return [end.id];
-          const rank = { land: 100, partner: 90, summon: 60, build: 50, spell: 40, activate: 30 };
+          const rank = { land: 100, partner: 90, summon: 60, modify: 55, build: 50, spell: 40, activate: 30 };
           let best = null, bs = -1;
           for (const a of acts) {
             if (a.type === 'endPhase') continue;

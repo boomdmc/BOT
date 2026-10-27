@@ -52,11 +52,48 @@
     }
   }
 
+  /* Corrections on top of the original data (conditions the original patches dropped). */
+  const NARAI = { type: ['Avatar'], nameHas: ['พระนารายณ์'] };
+  const onlyWhenNaraiDestroys = (a) => { a.trigger.params = Object.assign({}, a.trigger.params, { destroyerFilter: NARAI, bySide: 'self' }); };
+  const FIXES = {
+    'KD01-001/1': (a) => {
+      onlyWhenNaraiDestroys(a);
+      const walk = (ops) => { for (const o of ops || []) { if (o.op === 'scout' && o.pick) o.pick.forEach(p => { p.as = 'scouted'; }); if (o.then) walk(o.then); if (o.else) walk(o.else); } };
+      walk(a.effects);
+    },
+    'KD01-002/1': onlyWhenNaraiDestroys,
+    'KD01-003/1': onlyWhenNaraiDestroys,
+    'BT09-001/2': (a) => {
+      a.effects = [
+        { op: 'select', target: { side: 'self', zone: 'hell', filter: { type: ['Avatar'], nameHas: ['พระอิศวร'] }, count: 1, chooser: 'controller', as: 'pw' } },
+        { op: 'setPower', target: { ref: 'this' }, value: { stat: 'power', of: { ref: 'chosen:pw' }, per: 2 }, duration: 'permanent' },
+        { op: 'modifyPower', target: { side: 'enemy', zone: 'field', filter: { type: ['Avatar'] }, count: 1, chooser: 'controller' }, amount: { stat: 'power', of: { ref: 'this' } }, sign: -1, duration: 'permanent' },
+      ];
+    },
+    'SL01-008/1': (a) => {
+      a.effects = [{ op: 'summon', target: { side: 'self', zone: 'hell', filter: { type: ['Avatar'], cost: { max: 8 }, sameAs: { ref: 'chosen:cp', fields: ['symbol'] }, notSameAs: { ref: 'chosen:cp', fields: ['name'] } }, count: 1, chooser: 'controller' }, side: 'self', asJuti: true }];
+    },
+    'KD01-005/3': (a) => {
+      a.effects = [{ op: 'preventDestroy', target: { ref: 'this' } }, { op: 'setPower', target: { ref: 'this' }, value: { stat: 'printedPower', of: { ref: 'this' }, per: 2 }, duration: 'permanent' }];
+      a.limit = { per: 'game', n: 1 };
+    },
+    'CC01-059/1': (a) => {
+      const same = { sameAs: { ref: 'chosen:h1', fields: ['name'] } };
+      const eff = [{ op: 'search', player: 'self', from: ['hell'], filter: { type: ['Avatar'], cost: { max: 3 } }, count: 1, to: 'hand', as: 'h1' }];
+      for (const act of ['summon', 'useAbilities', 'attack']) {
+        eff.push({ op: 'restrict', target: { ref: 'chosen:h1' }, action: act, duration: 'endOfTurn' });
+        eff.push({ op: 'restrict', player: 'self', action: act, filter: same, duration: 'endOfTurn' });
+      }
+      a.effects = eff;
+    },
+  };
+
   TAL.buildDB = function (cardDefs, abil, patches) {
     const cards = {}, abilities = {}, byCard = {}, byEvent = {};
     for (const c of cardDefs.cards) cards[c.id] = c;
     for (const a of abil.abilities) { abilities[a.id] = JSON.parse(JSON.stringify(a)); }
     applyPatches(abilities, patches && patches.patches);
+    for (const [id, fix] of Object.entries(FIXES)) if (abilities[id]) fix(abilities[id]);
     for (const a of Object.values(abilities)) {
       (byCard[a.card] = byCard[a.card] || []).push(a);
     }
@@ -333,7 +370,7 @@
       for (const c of cards) {
         const g = this.gemOf(c);
         if (g <= 0) return false;
-        if (!this.gemCompat(c, target)) return false;
+        if (!this.gemCompat(c, target) || !this.payerAllowed(c, target)) return false;
         sum += g; min = Math.min(min, g);
       }
       return sum >= cost && (sum - min) < cost;
@@ -342,7 +379,7 @@
     paymentOptions(pi, target, limit) {
       const cost = this.effectiveCost(target);
       if (cost <= 0) return [[]];
-      const hand = this.players[pi].hand.filter(c => c !== target && this.gemOf(c) > 0 && this.gemCompat(c, target));
+      const hand = this.players[pi].hand.filter(c => c !== target && this.gemOf(c) > 0 && this.gemCompat(c, target) && this.payerAllowed(c, target));
       const out = [];
       const n = hand.length;
       for (let m = 1; m < (1 << n); m++) {

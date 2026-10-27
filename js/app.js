@@ -249,7 +249,7 @@
     deck: [1.7, 5.6, 9.5, 40.9], hell: [1.4, 49.5, 9.8, 46.4], dark: [12.6, 62, 15.4, 34], magic: [13.1, 1.5, 74, 28],
     avatar: [13.1, 31.9, 74, 27.6], land: [39.6, 66.6, 20, 29.4], construct: [60.6, 63.5, 26.6, 32.5], life: [88.5, 6.8, 9.8, 78.4],
   };
-  const useMat = () => window.innerHeight >= 600 && window.innerWidth >= 900;
+  const useMat = () => true;
   const zbox = (k, flip, extra) => {
     const [l, t, w, h] = MAT[k];
     const L = flip ? 100 - l - w : l, T = flip ? 100 - t - h : t;
@@ -366,7 +366,7 @@
     ui.onCard = (uid) => {
       const list = byCard[uid];
       const run = (a) => done([a.id]);
-      if (list.length === 1 && ['summon', 'build', 'land'].includes(list[0].type)) return run(list[0]);
+      if (list.length === 1 && ['summon', 'build', 'land', 'modify'].includes(list[0].type)) return run(list[0]);
       const m = modal(`<h3>เลือกการกระทำ</h3><div class="btns">${list.map((a, i) => `<button data-i="${i}" title="${esc(a.text || '')}">${esc(a.label)}</button>`).join('')}<button data-i="x">ยกเลิก</button></div>${list.map(a => a.text ? `<p class="hint">${esc(a.text)}</p>` : '').join('')}`);
       m.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.i === 'x') { closeModal(); return; } run(list[+b.dataset.i]); });
     };
@@ -492,6 +492,9 @@ ${esc(c.def.text || '')}</p>`; pv.hidden = false; }, 450);
     try { await screen.orientation.lock('landscape'); } catch (e) { /* ignore */ }
   };
   window.addEventListener('resize', () => { if (game) render(); });
+  /* iPhone/iPad Safari has no Fullscreen API: hide those buttons and show how to install it as an app instead */
+  if (!document.documentElement.requestFullscreen) { for (const id of ['#fsBtn', '#fsGameBtn']) { const b = $(id); if (b) b.hidden = true; } }
+  if (matchMedia('(pointer:coarse)').matches) { const f = document.querySelector('.mfoot'); if (f) f.textContent = 'เล่นเต็มจอบนมือถือ: กดปุ่มแชร์ แล้วเลือก “เพิ่มไปยังหน้าจอโฮม” · โปรเจกต์แฟนเมด ไม่แสวงหากำไร'; }
   $('#fsGameBtn').onclick = async () => {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ }
     try { if (document.fullscreenElement && window.innerWidth < 900) await screen.orientation.lock('landscape'); } catch (e) { /* unsupported */ }

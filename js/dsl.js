@@ -13,7 +13,7 @@
     'preventDestroy', 'protect', 'damageLife', 'revealLife', 'unrevealLife', 'if', 'choose', 'optional', 'random',
     'forEach', 'delayed', 'cancelAttack', 'redirectAttack', 'revealHand', 'restrict', 'equip', 'unequip', 'takeControl',
     'negate', 'changeName', 'changeSymbol', 'changeColor', 'modifyCost', 'build', 'playLand', 'addMagicQuota',
-    'removeAbilities', 'grantAbility', 'consumeMagicQuota', 'revealFromHand']);
+    'removeAbilities', 'grantAbility', 'consumeMagicQuota', 'revealFromHand', 'select']);
   const IMPL_RULES = new Set(['rule.deckLimit', 'rule.nameAlso', 'rule.symbolAlso', 'rule.colorAlso',
     'rule.costPaymentOnlyFor', 'rule.controlLimit', 'rule.abilityUseLimit', 'rule.deckRequires', 'rule.deckForbids',
     'rule.costIs', 'rule.ignoresMagicQuota', 'rule.cannotPlayFromHand', 'rule.summonOnlyBy', 'rule.cannotEquip',
@@ -34,7 +34,7 @@
   const FILTER_KEYS = new Set(['type', 'magicType', 'symbol', 'color', 'nameIs', 'nameHas', 'nameNot', 'textHas', 'cost',
     'gem', 'power', 'state', 'onlyOne', 'isToken', 'equipped', 'notThis', 'distinctNames', 'symbolNot', 'colorNot',
     'typeNot', 'hasKeyword', 'equippedTo', 'equippedWith', 'printedOwner', 'ownedBy', 'inPartner', 'donjai', 'noText',
-    'battling', 'summonedThisTurn', 'distinctSymbols', 'anyOf', 'nameHasNot', 'summonedFrom']);
+    'battling', 'summonedThisTurn', 'distinctSymbols', 'anyOf', 'nameHasNot', 'summonedFrom', 'sameAs', 'notSameAs']);
 
   function gateWalk(o, why, key) {
     if (Array.isArray(o)) { for (const x of o) gateWalk(x, why, key); return; }
@@ -344,8 +344,27 @@
     if (spec.gt != null && !(v > val(spec.gt))) return false;
     return true;
   };
+  /* sameAs / notSameAs: compare against another card (a chosen/trigger ref) on name, symbol, color, cost or power */
+  G.resolveSame = function (f, ctx) {
+    if (!f || (!f.sameAs && !f.notSameAs)) return f;
+    const out = Object.assign({}, f); delete out.sameAs; delete out.notSameAs;
+    const refCard = (spec) => (this.refCards(spec.ref, ctx || { src: {}, trigger: {}, chosen: {} }) || [])[0];
+    const apply = (spec, neg) => {
+      const rc = spec && refCard(spec); if (!rc) return;
+      for (const fld of spec.fields || []) {
+        if (fld === 'name') { if (neg) out.nameNot = (out.nameNot || []).concat(this.namesOf(rc)); else out.nameIs = this.namesOf(rc); }
+        else if (fld === 'symbol') { if (neg) out.symbolNot = (out.symbolNot || []).concat(this.symbolsOf(rc)); else out.symbol = this.symbolsOf(rc); }
+        else if (fld === 'color') { if (neg) out.colorNot = (out.colorNot || []).concat(this.colorsOf(rc)); else out.color = this.colorsOf(rc); }
+        else if (fld === 'cost' && !neg) out.cost = { eq: this.effectiveCost(rc) };
+        else if (fld === 'power' && !neg) out.power = { eq: this.getPower(rc) };
+      }
+    };
+    apply(f.sameAs, false); apply(f.notSameAs, true);
+    return out;
+  };
   G.matchFilter = function (c, f, ctx) {
     if (!f) return true;
+    if (f.sameAs || f.notSameAs) f = this.resolveSame(f, ctx);
     if (f.anyOf) { if (!f.anyOf.some(x => this.matchFilter(c, x, ctx))) return false; }
     const type = c.def.type;
     if (f.type && !f.type.includes(type) && !(c.isToken && f.type.includes('Token'))) return false;
@@ -511,7 +530,8 @@
       const cs = this.candidates(a.of || { ref: 'this' }, ctx);
       const v = (c) => a.stat === 'power' ? this.getPower(c) : a.stat === 'gem' ? this.gemOf(c) : a.stat === 'cost' ? this.effectiveCost(c)
         : a.stat === 'printedPower' || a.stat === 'basePower' ? (c.def.power || 0) : 0;
-      return cs.reduce((s, c) => s + v(c), 0);
+      const tot = cs.reduce((s, c) => s + v(c), 0);
+      return a.per ? Math.floor(tot / a.per) : tot;
     }
     if (a.lifeFaceUp != null) {
       const pls = playersOf(this, ctx, a.lifeFaceUp);
