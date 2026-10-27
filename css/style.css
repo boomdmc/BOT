@@ -187,3 +187,9 @@ body.matmode #handArea .card:hover { transform:none; }
 body.matmode .z-avatar .card.rested.can:hover { transform:rotate(90deg) scale(.7); }
 .card { transition:filter .12s, box-shadow .12s; }
 .card.can:hover, body.matmode #handArea .card:hover { filter:brightness(1.18) saturate(1.1); box-shadow:0 0 16px 5px var(--gold); z-index:5; }
+
+/* mascots live inside the page header, small */
+.hero { display:flex; align-items:center; justify-content:center; gap:18px; }
+.hero h1 { margin:0; }
+.mascot, .mascot.l, .mascot.r { position:static !important; height:84px; max-height:none; width:auto; display:block; filter:drop-shadow(0 3px 5px #000); }
+@media (max-height:559px), (max-width:899px) { .mascot { display:block !important; height:44px; } .hero { gap:10px; } }
