@@ -245,3 +245,34 @@ body:has(#menu:not([hidden])) { background:#0f1319; }
 body:has(#menu:not([hidden])) { background:linear-gradient(180deg,#0b0e13d9,#0b0e13b3 50%,#0b0e13e6),url(../img/ui/menu_bg.webp) center/cover no-repeat fixed #0f1319; }
 #menu { background:none !important; }
 #menu select, #menu #importBox textarea { background:#0f141bd9; }
+/* the hidden attribute must win over the grid layout (fixes "start game does nothing") */
+#menu[hidden], #game[hidden] { display:none !important; }
+
+/* deck manager */
+.dlg.mgr { width:min(1060px,100%); height:min(92vh,720px); background:#12171f; color:#d7dce5; border:1px solid #2b3647; border-radius:10px; gap:8px; overflow:hidden; }
+.dlg.mgr h3 { font-size:15px; color:#f1f3f7; }
+.mname { display:flex; gap:10px; align-items:center; }
+.mname input { flex:1; background:#0f141b; color:#d7dce5; border:1px solid #2b3647; border-radius:6px; padding:7px 10px; font:inherit; font-size:14px; }
+.mname span, .mmsg { font-size:12px; font-weight:600; } .ok { color:#8fd694; } .bad { color:#ffb4a8; }
+.mcols { display:grid; grid-template-columns:1fr 1fr; gap:12px; min-height:0; flex:1; }
+.mcol { display:flex; flex-direction:column; gap:6px; min-height:0; }
+.mh { font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:#8a94a6; }
+.mlist { overflow:auto; border:1px solid #263041; border-radius:6px; background:#0f141b; padding:4px; flex:1; min-height:0; }
+.mlist.short { flex:0 0 120px; } .mlist.tall { flex:1; }
+.drow { display:flex; align-items:center; gap:8px; padding:3px 6px; border-radius:5px; }
+.drow:hover { background:#1a212c; }
+.drow img { width:26px; height:36px; object-fit:cover; border-radius:3px; background:#222; flex:0 0 auto; }
+.dn { flex:1; min-width:0; font-size:13px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dn em { display:block; font-style:normal; font-size:11px; color:#7d889a; }
+.dn b { color:#e8c776; }
+.dq { display:flex; align-items:center; gap:4px; flex:0 0 auto; }
+.dq b { min-width:20px; text-align:center; font-size:13px; }
+.dlg.mgr button { background:#171c25; color:#d7dce5; border:1px solid #2f3a4b; border-radius:6px; padding:3px 10px; font:inherit; font-size:12px; box-shadow:none; }
+.dlg.mgr button:hover { border-color:#c9a85c; }
+.dlg.mgr .btns button { padding:6px 16px; font-size:13px; }
+.dlg.mgr button.primary { background:#c9a85c; color:#14171d; border-color:#c9a85c; font-weight:600; }
+.mtabs { display:flex; gap:6px; align-items:center; } .mtabs input { flex:1; background:#0f141b; color:#d7dce5; border:1px solid #2b3647; border-radius:6px; padding:5px 8px; font:inherit; font-size:12px; min-width:0; }
+.mtabs button.on { background:#26303d; border-color:#c9a85c; color:#e8c776; }
+@media (max-width:760px) { .mcols { grid-template-columns:1fr; } .dlg.mgr { height:96vh; } }
+@media (max-height:560px) { .dlg.mgr { height:97vh; padding:8px; } .mlist.short { flex-basis:60px; } .drow img { width:20px; height:28px; } }
+#menu .mactions { flex-wrap:wrap; }

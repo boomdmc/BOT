@@ -22,6 +22,7 @@
     renderLists(0, Math.min(2 + imported.length, decks.length - 1));
     $('#myDeck').onchange = deckNote; $('#aiDeck').onchange = deckNote;
     $('#importBtn').onclick = doImport;
+    $('#manageBtn').onclick = openManager;
     setupBookmarklet();
     const hm = location.hash.match(/deck=([^&]+)/);
     if (hm) {
@@ -110,7 +111,7 @@
     } catch (e) { importMsg('อ่านข้อมูลไม่ได้: ' + esc(e.message), false); return; }
     const total = Object.values(d.main).reduce((a, b) => a + b, 0);
     if (!total) { importMsg('ไม่พบการ์ดในข้อความที่วาง', false); return; }
-    d.imported = true;
+    d.imported = true; d.key = 'u' + Date.now();
     const errs = TAL.validateDeck(db, d);
     imported = imported.filter(x => x.name !== d.name); imported.unshift(d);
     try { localStorage.setItem('tal_imported_decks', JSON.stringify(imported.slice(0, 20))); } catch (e) { /* storage unavailable */ }
@@ -118,6 +119,99 @@
     renderLists(0, +$('#aiDeck').value + 1 <= decks.length - 1 ? Math.min(+$('#aiDeck').value + 1, decks.length - 1) : 0);
     $('#importText').value = '';
     importMsg(`นำเข้า "${esc(d.name)}" แล้ว (${total} ใบ + LIFE ${d.life.length})` + (d.unknown.length ? ` · ไม่รู้จัก ${d.unknown.length} ใบ: ${esc(d.unknown.slice(0, 6).join(', '))}` : '') + (errs.length ? `<br>หมายเหตุกติกา: ${esc(errs.join(' · '))}` : ''), !errs.length);
+  }
+
+
+  /* ---------------- deck manager ---------------- */
+  const persistImported = () => { try { localStorage.setItem('tal_imported_decks', JSON.stringify(imported.slice(0, 40))); } catch (e) { /* storage unavailable */ } };
+  const deckTotal = (d) => Object.values(d.main).reduce((a, b) => a + b, 0);
+  function openManager() {
+    const src = decks[+$('#myDeck').value];
+    const ed = { key: src.imported ? src.key : null, name: src.imported ? src.name : src.name + ' (แก้ไข)', main: Object.assign({}, src.main), life: (src.life || []).slice() };
+    let q = '', tab = 'main';
+    const m = modal('');
+    const nameOf = (id) => db.cards[id] ? db.cards[id].name : id;
+    const sup = (id) => TAL.cardSupported(db, id);
+    const sortedIds = () => Object.keys(ed.main).filter(id => db.cards[id]).sort((a, b) => {
+      const A = db.cards[a], B = db.cards[b]; const ta = ['Avatar', 'Construct', 'Magic'].indexOf(A.type), tb = ['Avatar', 'Construct', 'Magic'].indexOf(B.type);
+      return ta - tb || (A.cost || 0) - (B.cost || 0) || a.localeCompare(b);
+    });
+    const results = () => {
+      const t = q.trim().toLowerCase();
+      const want = tab === 'life' ? ['LIFE'] : ['Avatar', 'Construct', 'Magic'];
+      const out = [];
+      for (const c of Object.values(db.cards)) {
+        if (!want.includes(c.type) || c.flags.isToken || c.flags.lamiang) continue;
+        if (t && !(c.id.toLowerCase().includes(t) || c.name.toLowerCase().includes(t) || (c.symbol || '').toLowerCase().includes(t) || (c.color || '').includes(t))) continue;
+        out.push(c); if (out.length >= 80) break;
+      }
+      return out;
+    };
+    const meta = (c) => `${esc(c.id)} · ${esc(c.type)}${c.cost != null ? ' · Cost ' + c.cost : ''}${c.color ? ' · ' + esc(c.color) : ''}`;
+    const draw = () => {
+      const total = deckTotal(ed), errs = TAL.validateDeck(db, ed);
+      const mainRows = sortedIds().map(id => { const c = db.cards[id]; return `<div class="drow"><img src="img/cards/${esc(id)}.webp" alt=""><span class="dn">${esc(c.name)}${sup(id) ? '' : ' <b title="ยังไม่รองรับความสามารถ จะถูกแทนที่ตอนเล่น">⚠</b>'}<em>${meta(c)}</em></span><span class="dq"><button data-act="dec" data-id="${esc(id)}">−</button><b>${ed.main[id]}</b><button data-act="inc" data-id="${esc(id)}">+</button><button data-act="del" data-id="${esc(id)}" title="เอาออก">×</button></span></div>`; }).join('') || '<div class="hint">ยังไม่มีการ์ด ค้นหาด้านขวาแล้วกด เพิ่ม</div>';
+      const lifeRows = ed.life.map(id => `<div class="drow"><img src="img/cards/${esc(id)}.webp" alt=""><span class="dn">${esc(nameOf(id))}<em>${esc(id)}</em></span><span class="dq"><button data-act="dellife" data-id="${esc(id)}" title="เอาออก">×</button></span></div>`).join('') || '<div class="hint">ยังไม่มี LIFE</div>';
+      const res = results().map(c => `<div class="drow res"><img src="img/cards/${esc(c.id)}.webp" alt=""><span class="dn">${esc(c.name)}${sup(c.id) ? '' : ' <b>⚠</b>'}<em>${meta(c)}</em></span><span class="dq"><button data-act="add" data-id="${esc(c.id)}">เพิ่ม</button></span></div>`).join('') || '<div class="hint">ไม่พบการ์ด</div>';
+      const hadFocus = document.activeElement && document.activeElement.id === 'mgSearch';
+      const pos = hadFocus ? document.activeElement.selectionStart : 0;
+      m.innerHTML = `<div class="dlg mgr"><h3>จัดการเด็ค</h3>
+        <div class="mname"><input id="mgName" value="${esc(ed.name)}" placeholder="ชื่อเด็ค"><span class="${total === 50 ? 'ok' : 'bad'}">${total}/50</span><span class="${ed.life.length === 5 ? 'ok' : 'bad'}">LIFE ${ed.life.length}/5</span></div>
+        <div class="mcols">
+          <div class="mcol"><div class="mh">ในเด็ค (Main ${total} ใบ)</div><div class="mlist">${mainRows}</div><div class="mh">LIFE</div><div class="mlist short">${lifeRows}</div></div>
+          <div class="mcol"><div class="mtabs"><button data-act="tab" data-tab="main" class="${tab === 'main' ? 'on' : ''}">การ์ดหลัก</button><button data-act="tab" data-tab="life" class="${tab === 'life' ? 'on' : ''}">LIFE</button><input id="mgSearch" placeholder="ค้นหา: ชื่อ / รหัส เช่น KD01-002 / สี / Symbol" value="${esc(q)}"></div><div class="mlist tall">${res}</div></div>
+        </div>
+        <div class="mmsg ${errs.length ? 'bad' : 'ok'}">${errs.length ? esc(errs.slice(0, 4).join(' · ')) : 'เด็คถูกต้องตามกติกา'}</div>
+        <div class="btns"><button class="primary" data-act="save">บันทึกเด็ค</button><button data-act="export">คัดลอกเป็นข้อความ</button>${ed.key ? '<button data-act="remove">ลบเด็คนี้</button>' : ''}<button data-act="close">ปิด</button></div></div>`;
+      const si = m.querySelector('#mgSearch');
+      si.oninput = () => { q = si.value; draw(); };
+      m.querySelector('#mgName').oninput = (e) => { ed.name = e.target.value; };
+      if (hadFocus) { si.focus(); si.setSelectionRange(pos, pos); }
+    };
+    m.onclick = (e) => {
+      const b = e.target.closest('button[data-act]'); if (!b) return;
+      const id = b.dataset.id, act = b.dataset.act;
+      if (act === 'inc') ed.main[id] = (ed.main[id] || 0) + 1;
+      else if (act === 'dec') { ed.main[id] = (ed.main[id] || 1) - 1; if (ed.main[id] <= 0) delete ed.main[id]; }
+      else if (act === 'del') delete ed.main[id];
+      else if (act === 'dellife') ed.life = ed.life.filter(x => x !== id);
+      else if (act === 'add') {
+        const c = db.cards[id];
+        if (c.type === 'LIFE') {
+          if (ed.life.length >= 5) { alert('LIFE ครบ 5 ใบแล้ว ลบใบเดิมก่อน'); return; }
+          if (ed.life.includes(id) || ed.life.some(x => db.cards[x].name === c.name)) { alert('LIFE ต้องชื่อไม่ซ้ำกัน'); return; }
+          ed.life.push(id);
+        } else ed.main[id] = (ed.main[id] || 0) + 1;
+      }
+      else if (act === 'tab') tab = b.dataset.tab;
+      else if (act === 'close') { closeModal(); m.onclick = null; return; }
+      else if (act === 'export') {
+        const o = { name: ed.name, cards: Object.entries(ed.main).map(([print, quantity]) => ({ print, quantity })), lifeCards: ed.life.map(print => ({ print })) };
+        const txt = JSON.stringify(o);
+        (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => alert('คัดลอกแล้ว วางในช่องนำเข้าเพื่อใช้ซ้ำได้'), () => prompt('คัดลอกข้อความนี้', txt));
+        return;
+      }
+      else if (act === 'remove') {
+        if (!confirm('ลบเด็คนี้ออกจากรายการ?')) return;
+        imported = imported.filter(x => x.key !== ed.key); persistImported();
+        decks = imported.concat(decks.filter(x => !x.imported)); renderLists(0, Math.min(+$('#aiDeck').value, decks.length - 1)); closeModal(); m.onclick = null; return;
+      }
+      else if (act === 'save') {
+        if (!deckTotal(ed)) { alert('เด็คว่างเปล่า'); return; }
+        const d = { name: (ed.name || 'เด็คของฉัน').trim(), main: Object.assign({}, ed.main), life: ed.life.slice(), imported: true, key: ed.key || ('u' + Date.now()) };
+        const i = imported.findIndex(x => x.key === d.key);
+        if (i >= 0) imported[i] = d; else imported.unshift(d);
+        persistImported();
+        decks = imported.concat(decks.filter(x => !x.imported));
+        renderLists(Math.max(0, decks.findIndex(x => x.key === d.key)), Math.min(+$('#aiDeck').value + (i >= 0 ? 0 : 1), decks.length - 1));
+        closeModal(); m.onclick = null;
+        const errs = TAL.validateDeck(db, d);
+        importMsg(`บันทึก "${esc(d.name)}" แล้ว (${deckTotal(d)} ใบ + LIFE ${d.life.length})` + (errs.length ? '<br>หมายเหตุกติกา: ' + esc(errs.join(' · ')) : ''), !errs.length);
+        return;
+      }
+      draw();
+    };
+    draw();
   }
 
   /* ---------------- card html ---------------- */
