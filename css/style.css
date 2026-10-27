@@ -193,3 +193,46 @@ body.matmode .z-avatar .card.rested.can:hover { transform:rotate(90deg) scale(.7
 .hero h1 { margin:0; }
 .mascot, .mascot.l, .mascot.r { position:static !important; height:84px; max-height:none; width:auto; display:block; filter:drop-shadow(0 3px 5px #000); }
 @media (max-height:559px), (max-width:899px) { .mascot { display:block !important; height:44px; } .hero { gap:10px; } }
+
+/* ===== menu: single screen, minimal & formal ===== */
+html, body { overflow:hidden; }
+#menu { display:grid !important; grid-template-rows:auto minmax(0,1fr) auto auto auto auto; gap:14px; height:100vh; height:100dvh; max-width:980px; margin:0 auto; padding:24px 28px 16px; background:none; overflow:hidden; align-items:stretch; font-family:system-ui,'Noto Sans Thai','Sarabun',Tahoma,sans-serif; color:#e6e9ef; }
+body:has(#menu:not([hidden])) { background:#0f1319; }
+#menu .mhead { text-align:left; border-bottom:1px solid #263041; padding-bottom:12px; }
+#menu h1 { margin:0; font-family:inherit; font-size:24px; font-weight:600; letter-spacing:.3px; color:#f1f3f7; text-shadow:none; }
+#menu .sub { margin:4px 0 0; color:#8a94a6; font-size:13px; text-align:left; text-shadow:none; }
+#menu .mmain { display:grid; grid-template-columns:1fr 1fr; gap:20px; min-height:0; }
+#menu .mmain section { display:grid; grid-template-rows:auto minmax(0,1fr); min-height:0; gap:6px; }
+#menu h3 { margin:0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:#8a94a6; text-shadow:none; }
+#menu select { width:100%; height:100%; min-height:0; background:#151a22; color:#d7dce5; border:1px solid #263041; border-radius:6px; padding:4px; font:inherit; font-size:14px; }
+#menu select option { padding:5px 8px; border-radius:4px; }
+#menu select option:checked { background:#26303d linear-gradient(#26303d,#26303d); color:#e8c776; }
+#menu button { background:#171c25; color:#d7dce5; border:1px solid #2f3a4b; border-radius:6px; padding:8px 18px; font:inherit; font-size:14px; font-weight:500; box-shadow:none; }
+#menu button:hover:not(:disabled) { background:#1e2531; border-color:#4a5a73; }
+#menu button:active:not(:disabled) { transform:none; background:#141922; }
+#menu button.primary { background:#c9a85c; color:#14171d; border-color:#c9a85c; font-weight:600; padding:10px 40px; font-size:15px; }
+#menu button.primary:hover:not(:disabled) { background:#d6b76b; border-color:#d6b76b; }
+#menu #importBox { display:block; width:auto; }
+#menu #importBox label { display:block; margin-bottom:6px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:#8a94a6; }
+#menu .irow { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+#menu #importBox textarea { width:100%; height:38px; resize:none; background:#151a22; color:#d7dce5; border:1px solid #263041; border-radius:6px; padding:8px 10px; font:inherit; font-size:13px; line-height:20px; overflow:hidden; }
+#menu #importBox textarea:focus { outline:none; border-color:#c9a85c; }
+#menu #importMsg { margin-top:6px; min-height:16px; font-size:12px; text-align:left; }
+#menu .note { color:#8a94a6; font-size:12px; text-align:left; text-shadow:none; margin:0; }
+#menu #deckNote { text-align:left; }
+#menu .mactions { display:flex; gap:10px; justify-content:center; align-items:center; }
+#menu .mfoot { text-align:center; color:#5d6778; font-size:11px; }
+#menu .mascot, #menu .hero { display:none !important; }
+@media (max-width:760px) { #menu .mmain { grid-template-columns:1fr; } }
+@media (max-height:560px) {
+  #menu { padding:8px 14px 6px; gap:6px; }
+  #menu h1 { font-size:17px; } #menu .sub { display:none; } #menu .mhead { padding-bottom:6px; }
+  #menu .mmain { gap:10px; } #menu select { font-size:12px; } #menu h3 { font-size:10px; }
+  #menu #importBox label { display:none; } #menu #importBox textarea { height:30px; padding:4px 8px; font-size:12px; line-height:20px; }
+  #menu button { padding:5px 12px; font-size:12px; } #menu button.primary { padding:6px 24px; font-size:13px; }
+  #menu .mfoot { display:none; } #menu #importMsg { margin-top:2px; font-size:11px; }
+}
+
+#menu .bmline { margin-top:4px; font-size:11px; color:#8a94a6; }
+#menu .bmline a { display:inline-block; margin:0 4px; padding:1px 10px; border:1px dashed #c9a85c; border-radius:12px; color:#e8c776; text-decoration:none; cursor:grab; }
+@media (max-height:560px) { #menu .bmline { display:none; } }

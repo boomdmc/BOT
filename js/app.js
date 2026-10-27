@@ -22,6 +22,13 @@
     renderLists(0, Math.min(2 + imported.length, decks.length - 1));
     $('#myDeck').onchange = deckNote; $('#aiDeck').onchange = deckNote;
     $('#importBtn').onclick = doImport;
+    setupBookmarklet();
+    const hm = location.hash.match(/deck=([^&]+)/);
+    if (hm) {
+      try { $('#importText').value = decodeURIComponent(escape(atob(decodeURIComponent(hm[1])))); await doImport(); }
+      catch (e) { importMsg('อ่านเด็คที่ส่งมาไม่ได้', false); }
+      history.replaceState(null, '', location.pathname + location.search);
+    }
     $('#importText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doImport(); } });
     $('#startBtn').disabled = false; $('#startBtn').textContent = 'เริ่มเกม';
   }
@@ -70,11 +77,20 @@
   }
   async function fetchDeckById(id) {
     const url = 'https://bottcg.com/api/decks/' + id;
-    const tries = [url, 'https://corsproxy.io/?url=' + encodeURIComponent(url), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)];
+    const tries = [url, 'https://api.cors.lol/?url=' + encodeURIComponent(url), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)];
     for (const u of tries) {
-      try { const r = await fetch(u); if (!r.ok) continue; const j = await r.json(); if (j && j.deck) return j; } catch (e) { /* try next */ }
+      try {
+        const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 6000);
+        const r = await fetch(u, { signal: ac.signal }); clearTimeout(tm);
+        if (!r.ok) continue; const j = await r.json(); if (j && j.deck) return j;
+      } catch (e) { /* try next */ }
     }
     return null;
+  }
+  function setupBookmarklet() {
+    const base = location.origin + location.pathname;
+    const code = "(async()=>{try{const m=location.pathname.match(/decks\/([A-Za-z0-9]+)/);if(!m){alert('เปิดหน้าเด็คใน bottcg.com ก่อน');return}const j=await (await fetch('/api/decks/'+m[1])).json();const d=j.deck;const o={name:d.name,cards:d.cards,lifeCards:d.lifeCards};location.href='" + base + "#deck='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(o)))));}catch(e){alert('ดึงเด็คไม่ได้: '+e.message)}})()";
+    const a = $('#bmLink'); if (a) a.setAttribute('href', 'javascript:' + code);
   }
   async function doImport() {
     const text = $('#importText').value.trim();
@@ -87,7 +103,7 @@
         if (idm) {
           importMsg('กำลังดึงเด็คจาก bottcg.com …', true);
           const j = await fetchDeckById(idm[1]);
-          if (!j) { importMsg(`ดึงอัตโนมัติไม่ได้ (เว็บ official ไม่อนุญาตให้เบราว์เซอร์ดึงข้อมูลข้ามเว็บ) — เปิด <a href="https://bottcg.com/api/decks/${idm[1]}" target="_blank" rel="noopener">ลิงก์ข้อมูลเด็คนี้</a> แล้วคัดลอกข้อความทั้งหมดมาวางในช่องนี้แทน`, false); return; }
+          if (!j) { importMsg(`ดึงจากลิงก์ตรง ๆ ไม่ได้ (เว็บ official ไม่ให้เว็บอื่นดึงข้อมูล) ใช้ปุ่ม “ส่งเด็คเข้าเกม” ด้านล่าง หรือเปิด <a href="https://bottcg.com/api/decks/${idm[1]}" target="_blank" rel="noopener">ข้อมูลเด็คนี้</a> แล้วคัดลอกข้อความทั้งหมดมาวางช่องนี้`, false); return; }
           d = deckFromJson(j);
         } else d = deckFromText(text);
       }

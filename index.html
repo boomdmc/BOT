@@ -8,33 +8,34 @@
 <title>Battle of Talingchan - เล่นกับ AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Itim&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
 <div id="rotate"><div style="font-size:56px">&#x21BB;</div><div>กรุณาหมุนเครื่องเป็นแนวนอน</div><div class="note">เกมนี้เล่นได้เฉพาะแนวนอน</div></div>
 <div id="menu" class="screen">
-  <div class="hero"><img class="mascot" src="img/ui/yak_khiao.webp" alt=""><h1>Battle of Talingchan</h1><img class="mascot" src="img/ui/racha_ngu.webp" alt=""></div>
-  <p class="sub">โหมดเดียว: ต่อสู้กับ AI · กติกาอ้างอิง Rule Book Ver. 3.2</p>
-  <div class="menu-grid">
-    <div>
-      <h3>เด็คของคุณ</h3>
-      <select id="myDeck" size="12"></select>
+  <header class="mhead">
+    <h1>Battle of Talingchan</h1>
+    <p class="sub">ทดสอบเด็คกับ AI &middot; กติกาอ้างอิง Rule Book Ver. 3.2</p>
+  </header>
+  <main class="mmain">
+    <section><h3>เด็คของคุณ</h3><select id="myDeck" size="6"></select></section>
+    <section><h3>เด็คของ AI</h3><select id="aiDeck" size="6"></select></section>
+  </main>
+  <section id="importBox">
+    <label for="importText">นำเข้าเด็คจาก bottcg.com</label>
+    <div class="irow">
+      <textarea id="importText" rows="1" placeholder="วางลิงก์ เช่น https://bottcg.com/decks/fPuDCCfxg1 หรือข้อความ JSON / ลิสต์การ์ด"></textarea>
+      <button id="importBtn">นำเข้า</button>
     </div>
-    <div>
-      <h3>เด็คของ AI</h3>
-      <select id="aiDeck" size="12"></select>
-    </div>
-  </div>
-  <div id="importBox">
-    <h3>นำเข้าเด็คจาก bottcg.com</h3>
-    <textarea id="importText" rows="2" placeholder="วางลิงก์ เช่น https://bottcg.com/decks/fPuDCCfxg1 (หรือวางข้อความ JSON / ลิสต์การ์ด) แล้วกด นำเข้า"></textarea>
-    <button id="importBtn">นำเข้าเด็ค</button>
     <div id="importMsg" class="note"></div>
-  </div>
+    <div class="bmline">ถ้าวางลิงก์แล้วดึงไม่ได้: ลากปุ่มนี้ไปวางที่แถบบุ๊กมาร์ก <a id="bmLink" href="#" onclick="return false" title="ลากไปที่แถบบุ๊กมาร์ก">ส่งเด็คเข้าเกม</a> แล้วกดเมื่ออยู่หน้าเด็คใน bottcg.com เด็คจะถูกส่งเข้าเกมนี้ทันที</div>
+  </section>
   <p id="deckNote" class="note"></p>
-  <button id="startBtn" class="primary" disabled>กำลังโหลดข้อมูล…</button>
-  <button id="fsBtn">เล่นเต็มจอ (ล็อกแนวนอนบนมือถือ)</button>
-  <p class="note">การ์ดที่ระบบยังไม่รองรับความสามารถ จะถูกแทนที่ด้วยการ์ดชนิดใกล้เคียงโดยอัตโนมัติ</p>
+  <div class="mactions">
+    <button id="startBtn" class="primary" disabled>กำลังโหลดข้อมูล…</button>
+    <button id="fsBtn">เต็มจอ</button>
+  </div>
+  <footer class="mfoot">การ์ดที่ระบบยังไม่รองรับความสามารถ จะถูกแทนที่ด้วยการ์ดชนิดใกล้เคียงโดยอัตโนมัติ &middot; โปรเจกต์แฟนเมด ไม่แสวงหากำไร</footer>
 </div>
 
 <div id="game" class="screen" hidden>
@@ -59,13 +60,13 @@
 
 <div id="modal" hidden></div>
 
-<script src="data/bundle.js?v=15"></script>
-<script src="js/core.js?v=15"></script>
-<script src="js/dsl.js?v=15"></script>
-<script src="js/ops.js?v=15"></script>
-<script src="js/flow.js?v=15"></script>
-<script src="js/ai.js?v=15"></script>
-<script src="js/decks.js?v=15"></script>
-<script src="js/app.js?v=15"></script>
+<script src="data/bundle.js?v=18"></script>
+<script src="js/core.js?v=18"></script>
+<script src="js/dsl.js?v=18"></script>
+<script src="js/ops.js?v=18"></script>
+<script src="js/flow.js?v=18"></script>
+<script src="js/ai.js?v=18"></script>
+<script src="js/decks.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
 </body>
 </html>
