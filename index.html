@@ -8,7 +8,7 @@
 <title>Battle of Talingchan - เล่นกับ AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Itim&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
 <div id="rotate"><div style="font-size:56px">&#x21BB;</div><div>กรุณาหมุนเครื่องเป็นแนวนอน</div><div class="note">เกมนี้เล่นได้เฉพาะแนวนอน</div></div>
@@ -26,6 +26,12 @@
       <select id="aiDeck" size="12"></select>
     </div>
   </div>
+  <div id="importBox">
+    <h3>นำเข้าเด็คจาก bottcg.com</h3>
+    <textarea id="importText" rows="2" placeholder="วางลิงก์ เช่น https://bottcg.com/decks/fPuDCCfxg1 (หรือวางข้อความ JSON / ลิสต์การ์ด) แล้วกด นำเข้า"></textarea>
+    <button id="importBtn">นำเข้าเด็ค</button>
+    <div id="importMsg" class="note"></div>
+  </div>
   <p id="deckNote" class="note"></p>
   <button id="startBtn" class="primary" disabled>กำลังโหลดข้อมูล…</button>
   <button id="fsBtn">เล่นเต็มจอ (ล็อกแนวนอนบนมือถือ)</button>
@@ -36,6 +42,7 @@
   <div id="topbar">
     <div id="phases"><span data-p="draw">Draw</span><span data-p="main">Main</span><span data-p="battle">Battle</span><span data-p="end">End</span></div>
     <div id="status"></div>
+    <button id="fsGameBtn" title="เต็มจอ">&#x26F6; เต็มจอ</button>
     <button id="logToggle">Log</button>
     <button id="quitBtn">ออกจากเกม</button>
   </div>
@@ -53,13 +60,13 @@
 
 <div id="modal" hidden></div>
 
-<script src="data/bundle.js?v=8"></script>
-<script src="js/core.js?v=8"></script>
-<script src="js/dsl.js?v=8"></script>
-<script src="js/ops.js?v=8"></script>
-<script src="js/flow.js?v=8"></script>
-<script src="js/ai.js?v=8"></script>
-<script src="js/decks.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="data/bundle.js?v=13"></script>
+<script src="js/core.js?v=13"></script>
+<script src="js/dsl.js?v=13"></script>
+<script src="js/ops.js?v=13"></script>
+<script src="js/flow.js?v=13"></script>
+<script src="js/ai.js?v=13"></script>
+<script src="js/decks.js?v=13"></script>
+<script src="js/app.js?v=13"></script>
 </body>
 </html>

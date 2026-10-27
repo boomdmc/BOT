@@ -17,17 +17,91 @@
     const colorTh = { red: 'แดง', blue: 'ฟ้า', green: 'เขียว', purple: 'ม่วง' };
     for (const [k, v] of Object.entries(sd)) decks.push({ name: 'Structure Deck: ' + v.name + ' (' + (colorTh[k] || k) + ')', main: v.main, life: v.life });
     for (const b of bd) decks.push({ name: b.name + (b.by ? '  — ' + b.by : ''), main: b.main, life: b.life });
-    for (const sel of [$('#myDeck'), $('#aiDeck')]) {
-      decks.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = d.name; sel.appendChild(o); });
-    }
-    $('#myDeck').value = 0; $('#aiDeck').value = Math.min(2, decks.length - 1);
-    const upd = () => {
-      const a = TAL.adaptDeck(db, decks[+$('#myDeck').value], Math.random);
-      const b = TAL.adaptDeck(db, decks[+$('#aiDeck').value], Math.random);
-      $('#deckNote').textContent = `เด็คคุณแทนที่การ์ดที่ยังไม่รองรับ ${a.replaced.length} ใบ · เด็ค AI ${b.replaced.length} ใบ`;
-    };
-    $('#myDeck').onchange = upd; $('#aiDeck').onchange = upd; upd();
+    try { imported = JSON.parse(localStorage.getItem('tal_imported_decks') || '[]'); } catch (e) { imported = []; }
+    decks = imported.concat(decks);
+    renderLists(0, Math.min(2 + imported.length, decks.length - 1));
+    $('#myDeck').onchange = deckNote; $('#aiDeck').onchange = deckNote;
+    $('#importBtn').onclick = doImport;
+    $('#importText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doImport(); } });
     $('#startBtn').disabled = false; $('#startBtn').textContent = 'เริ่มเกม';
+  }
+
+
+  /* ---------------- deck import (bottcg.com link / JSON / card list) ---------------- */
+  let imported = [];
+  function renderLists(myIdx, aiIdx) {
+    for (const [sel, idx] of [[$('#myDeck'), myIdx], [$('#aiDeck'), aiIdx]]) {
+      sel.innerHTML = '';
+      decks.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = (d.imported ? '★ ' : '') + d.name; sel.appendChild(o); });
+      sel.value = idx;
+    }
+    deckNote();
+  }
+  function deckNote() {
+    const a = TAL.adaptDeck(db, decks[+$('#myDeck').value], Math.random);
+    const b = TAL.adaptDeck(db, decks[+$('#aiDeck').value], Math.random);
+    $('#deckNote').textContent = `เด็คคุณแทนที่การ์ดที่ยังไม่รองรับ ${a.replaced.length} ใบ · เด็ค AI ${b.replaced.length} ใบ`;
+  }
+  const importMsg = (t, ok) => { const m = $('#importMsg'); m.innerHTML = t; m.style.color = ok ? '#9be28a' : '#ffb4a8'; };
+  function toCardId(print) {
+    if (db.cards[print]) return print;
+    const base = String(print).replace(/-[A-Z]{1,4}$/, '');
+    return db.cards[base] ? base : null;
+  }
+  function deckFromJson(j) {
+    const k = j.deck || j;
+    const main = {}, life = [], unknown = [];
+    for (const c of k.cards || []) { const id = toCardId(c.print); if (id) main[id] = (main[id] || 0) + (c.quantity || 1); else unknown.push(c.print); }
+    for (const c of k.lifeCards || []) { const id = toCardId(c.print); if (id) life.push(id); else unknown.push(c.print); }
+    return { name: k.name || 'เด็คนำเข้า', main, life, unknown };
+  }
+  function deckFromText(text) {
+    const main = {}, life = [], unknown = [];
+    const re = /\b([A-Z]{2,5}\d{0,2}-[0-9]{2,3}[A-Z]?)\b/;
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.match(re); if (!m) continue;
+      const id = toCardId(m[1]); if (!id) { unknown.push(m[1]); continue; }
+      let n = 1, q;
+      if ((q = line.match(/(\d+)\s*[xX\u00d7]/)) || (q = line.match(/[xX\u00d7]\s*(\d+)/)) || (q = line.match(/^\s*(\d+)\s+/)) || (q = line.replace(m[1], ' ').match(/\s(\d+)\s*$/))) n = Math.min(+q[1], 50);
+      if (db.cards[id].type === 'LIFE') { if (!life.includes(id) && life.length < 5) life.push(id); }
+      else main[id] = (main[id] || 0) + n;
+    }
+    return { name: 'เด็คนำเข้า (ลิสต์)', main, life, unknown };
+  }
+  async function fetchDeckById(id) {
+    const url = 'https://bottcg.com/api/decks/' + id;
+    const tries = [url, 'https://corsproxy.io/?url=' + encodeURIComponent(url), 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)];
+    for (const u of tries) {
+      try { const r = await fetch(u); if (!r.ok) continue; const j = await r.json(); if (j && j.deck) return j; } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+  async function doImport() {
+    const text = $('#importText').value.trim();
+    if (!text) { importMsg('วางลิงก์เด็ค หรือข้อความก่อน', false); return; }
+    let d = null;
+    try {
+      if (/^\s*\{/.test(text)) d = deckFromJson(JSON.parse(text));
+      else {
+        const idm = text.match(/decks\/([A-Za-z0-9]{6,16})/) || text.match(/^([A-Za-z0-9]{8,16})$/);
+        if (idm) {
+          importMsg('กำลังดึงเด็คจาก bottcg.com …', true);
+          const j = await fetchDeckById(idm[1]);
+          if (!j) { importMsg(`ดึงอัตโนมัติไม่ได้ (เว็บ official ไม่อนุญาตให้เบราว์เซอร์ดึงข้อมูลข้ามเว็บ) — เปิด <a href="https://bottcg.com/api/decks/${idm[1]}" target="_blank" rel="noopener">ลิงก์ข้อมูลเด็คนี้</a> แล้วคัดลอกข้อความทั้งหมดมาวางในช่องนี้แทน`, false); return; }
+          d = deckFromJson(j);
+        } else d = deckFromText(text);
+      }
+    } catch (e) { importMsg('อ่านข้อมูลไม่ได้: ' + esc(e.message), false); return; }
+    const total = Object.values(d.main).reduce((a, b) => a + b, 0);
+    if (!total) { importMsg('ไม่พบการ์ดในข้อความที่วาง', false); return; }
+    d.imported = true;
+    const errs = TAL.validateDeck(db, d);
+    imported = imported.filter(x => x.name !== d.name); imported.unshift(d);
+    try { localStorage.setItem('tal_imported_decks', JSON.stringify(imported.slice(0, 20))); } catch (e) { /* storage unavailable */ }
+    decks = imported.concat(decks.filter(x => !x.imported));
+    renderLists(0, +$('#aiDeck').value + 1 <= decks.length - 1 ? Math.min(+$('#aiDeck').value + 1, decks.length - 1) : 0);
+    $('#importText').value = '';
+    importMsg(`นำเข้า "${esc(d.name)}" แล้ว (${total} ใบ + LIFE ${d.life.length})` + (d.unknown.length ? ` · ไม่รู้จัก ${d.unknown.length} ใบ: ${esc(d.unknown.slice(0, 6).join(', '))}` : '') + (errs.length ? `<br>หมายเหตุกติกา: ${esc(errs.join(' · '))}` : ''), !errs.length);
   }
 
   /* ---------------- card html ---------------- */
@@ -76,8 +150,8 @@
     const cards = (list) => list.map(c => cardHtml(c)).join('');
     const hellTop = pl.hell[pl.hell.length - 1];
     const canL = pi === 1 && ui.canLife;
-    let h = `<div class="mat-name">${esc(pl.name)} · Deck ${pl.deck.length} · มือ ${pl.hand.length}</div>`;
-    h += `<div class="mat${flip ? ' flip' : ''}">`;
+    let h = `<div class="mat${flip ? ' flip' : ''}">`;
+    h += `<div class="mat-name">${esc(pl.name)} · Deck ${pl.deck.length} · มือ ${pl.hand.length}</div>`;
     h += zbox('deck', flip) + `<div class="card back deckimg"></div><span class="cnt">${pl.deck.length}</span></div>`;
     h += zbox('hell', flip) + `<a href="#" data-view="hell${pi}" class="viewlink">${hellTop ? cardHtml(hellTop, { reveal: true }) : ''}<span class="cnt">${pl.hell.length}</span></a></div>`;
     h += zbox('dark', flip) + `<a href="#" data-view="dark${pi}" class="viewlink"><span class="cnt">${pl.dark.length}</span></a></div>`;
@@ -308,6 +382,11 @@ ${esc(c.def.text || '')}</p>`; pv.hidden = false; }, 450);
     try { await screen.orientation.lock('landscape'); } catch (e) { /* ignore */ }
   };
   window.addEventListener('resize', () => { if (game) render(); });
+  $('#fsGameBtn').onclick = async () => {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ }
+    try { if (document.fullscreenElement && window.innerWidth < 900) await screen.orientation.lock('landscape'); } catch (e) { /* unsupported */ }
+  };
+  document.addEventListener('fullscreenchange', () => { if (game) render(); });
   $('#startBtn').onclick = startGame;
   $('#logToggle').onclick = () => { const p = $('#logPanel'); p.hidden = !p.hidden; };
   $('#quitBtn').onclick = () => { if (confirm('ออกจากเกม?')) location.reload(); };
