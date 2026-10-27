@@ -306,8 +306,8 @@
     const lands = g.land.filter(c => c.ctrl === pi);
     return `<div class="cp">
       <div class="cphead"><b>${esc(pl.name)}</b><span>Deck ${pl.deck.length} · มือ ${pl.hand.length}</span><a href="#" data-view="hell${pi}">นรก ${pl.hell.length}</a><a href="#" data-view="dark${pi}">มิติมืด ${pl.dark.length}</a>${life}</div>
-      <div class="cplabel">Avatar</div>${row(pl.avatarZone, 'cpav')}
-      <div class="cprow2"><div><span class="cplabel">Magic</span>${row(pl.magicZone, 'cpsm')}</div><div><span class="cplabel">Construct</span>${row(pl.constructZone, 'cpsm')}</div><div><span class="cplabel">Land</span>${row(lands, 'cpsm')}</div></div>
+      ${row(pl.avatarZone, 'cpav')}
+      <div class="cprow2"><div data-l="Magic">${row(pl.magicZone, 'cpsm')}</div><div data-l="Construct">${row(pl.constructZone, 'cpsm')}</div><div data-l="Land">${row(lands, 'cpsm')}</div></div>
     </div>`;
   }
 

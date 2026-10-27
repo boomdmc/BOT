@@ -375,3 +375,23 @@ body.compact .cp { padding:3px 6px; }
 #detail .dbtn { display:flex; gap:10px; }
 #detail button { padding:9px 22px; font-size:14px; }
 @media (max-height:520px) { #detail .dbox { flex-direction:row; flex-wrap:wrap; justify-content:center; } #detail img { width:34vh; } #detail .dtxt { flex:1 1 220px; width:auto; } }
+
+/* ===== portrait v3: no wasted space, whole field of both players on one screen ===== */
+body.compact #mid { display:none !important; }
+body.compact #board { padding:3px 4px; gap:4px; justify-content:flex-start; overflow:hidden; }
+body.compact .side { flex:1 1 0; min-height:0; }
+body.compact .cp { height:100%; display:flex; flex-direction:column; padding:3px 5px; box-sizing:border-box; }
+body.compact .side.opp .cp { border-color:#5a2f2f; background:#1a0f10a8; }
+body.compact .side.me .cp { border-color:#2f4a5a; background:#0e1822a8; }
+.cphead { gap:6px; margin-bottom:2px; font-size:11px; }
+.cphead .lifebox .card { width:16px; height:22px; }
+.cplabel { display:none; }
+.cpav { flex:1 1 auto; min-height:0; align-content:center; gap:5px; }
+.cpav .card { width:calc((100vw - 38px) / 6); max-width:60px; }
+.cpav .card .pw { font-size:13px; padding:0 5px; }
+.cprow2 { flex:0 0 auto; margin-top:2px; gap:4px; border-top:1px solid #ffffff14; padding-top:2px; }
+.cprow2 > div::before { content:attr(data-l); display:block; font-size:8px; letter-spacing:.5px; text-transform:uppercase; color:#7d889a; }
+.cpsm { min-height:40px; }
+.cpsm .card { width:30px; }
+body.compact #status { font-size:11px; padding:0 2px; }
+body.compact #handArea .card { width:60px; }
