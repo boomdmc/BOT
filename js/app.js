@@ -261,7 +261,8 @@
     deck: [1.7, 5.6, 9.5, 40.9], hell: [1.4, 49.5, 9.8, 46.4], dark: [12.6, 62, 15.4, 34], magic: [13.1, 1.5, 74, 28],
     avatar: [13.1, 31.9, 74, 27.6], land: [39.6, 66.6, 20, 29.4], construct: [60.6, 63.5, 26.6, 32.5], life: [88.5, 6.8, 9.8, 78.4],
   };
-  const useMat = () => true;
+  const isPortrait = () => window.innerHeight > window.innerWidth;
+  const useMat = () => !isPortrait();
   const zbox = (k, flip, extra) => {
     const [l, t, w, h] = MAT[k];
     const L = flip ? 100 - l - w : l, T = flip ? 100 - t - h : t;
@@ -285,9 +286,25 @@
     return h + '</div>';
   }
 
+
+  /* portrait phones: no play-mat art, a compact board that shows the whole field */
+  function renderCompact(pi) {
+    const g = game, pl = g.players[pi];
+    const row = (list, cls) => `<div class="cprow ${cls || ''}">${list.map(c => cardHtml(c)).join('')}</div>`;
+    const canL = pi === 1 && ui.canLife;
+    const life = `<div class="lifebox target-life${canL ? ' can' : ''}" data-life="${pi}" title="LIFE">${pl.life.map(c => cardHtml(c, { reveal: c.faceUp })).join('')}</div>`;
+    const lands = g.land.filter(c => c.ctrl === pi);
+    return `<div class="cp">
+      <div class="cphead"><b>${esc(pl.name)}</b><span>Deck ${pl.deck.length} · มือ ${pl.hand.length}</span><a href="#" data-view="hell${pi}">นรก ${pl.hell.length}</a><a href="#" data-view="dark${pi}">มิติมืด ${pl.dark.length}</a>${life}</div>
+      <div class="cplabel">Avatar</div>${row(pl.avatarZone, 'cpav')}
+      <div class="cprow2"><div><span class="cplabel">Magic</span>${row(pl.magicZone, 'cpsm')}</div><div><span class="cplabel">Construct</span>${row(pl.constructZone, 'cpsm')}</div><div><span class="cplabel">Land</span>${row(lands, 'cpsm')}</div></div>
+    </div>`;
+  }
+
   function renderSide(pi) {
     const g = game, pl = g.players[pi];
     const el = $('#side' + pi);
+    if (document.body.classList.contains('compact')) { el.innerHTML = renderCompact(pi); return; }
     if (document.body.classList.contains('matmode')) { el.innerHTML = renderMat(pi); return; }
     const hide = pi === 1;
     const lifeHtml = pl.life.map(c => cardHtml(c, { reveal: c.faceUp })).join('');
@@ -302,6 +319,7 @@
     const g = game;
     if (!g) return;
     document.body.classList.toggle('matmode', useMat());
+    document.body.classList.toggle('compact', !useMat());
     document.querySelectorAll('#phases span').forEach(s => s.classList.toggle('on', s.dataset.p === g.phase));
     renderSide(1); renderSide(0);
     if (!document.body.classList.contains('matmode')) $('#landZone').innerHTML = `<span class="zl">Land Magic Zone</span><div class="row">${g.land.map(c => cardHtml(c)).join('')}</div>`;
