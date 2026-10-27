@@ -359,3 +359,19 @@ body.compact .dlg .cards .card { width:64px; height:88px; }
 body.compact #topbar, body.compact #handArea, body.compact #actionBar { flex:0 0 auto; }
 body.compact #board { flex:1 1 0; }
 body.compact #actionBar { min-height:46px; }
+
+/* smaller board cards on phones; tap a card for the big view */
+.cpav { min-height:62px; }
+.cpav .card { width:44px; max-width:44px; border-width:2px; }
+.cpsm { min-height:36px; }
+.cpsm .card { width:28px; }
+.cphead .lifebox .card { width:18px; height:25px; }
+body.compact .cp { padding:3px 6px; }
+#detail { position:fixed; inset:0; z-index:70; background:#000b; display:flex; align-items:center; justify-content:center; padding:12px; }
+#detail[hidden] { display:none !important; }
+#detail .dbox { background:#12171f; border:1px solid #2b3647; border-radius:12px; padding:12px; width:min(380px,100%); max-height:94dvh; overflow:auto; display:flex; flex-direction:column; gap:8px; align-items:center; color:#e6e9ef; }
+#detail img { width:min(250px,62vw); height:auto; border-radius:10px; }
+#detail .dtxt { font-size:13px; line-height:1.4; white-space:pre-wrap; width:100%; }
+#detail .dbtn { display:flex; gap:10px; }
+#detail button { padding:9px 22px; font-size:14px; }
+@media (max-height:520px) { #detail .dbox { flex-direction:row; flex-wrap:wrap; justify-content:center; } #detail img { width:34vh; } #detail .dtxt { flex:1 1 220px; width:auto; } }

@@ -18,7 +18,10 @@
     for (const [k, v] of Object.entries(sd)) decks.push({ name: 'Structure Deck: ' + v.name + ' (' + (colorTh[k] || k) + ')', main: v.main, life: v.life });
     for (const b of bd) decks.push({ name: b.name + (b.by ? '  — ' + b.by : ''), main: b.main, life: b.life });
     try { imported = JSON.parse(localStorage.getItem('tal_imported_decks') || '[]'); } catch (e) { imported = []; }
-    decks = imported.concat(decks);
+    imported.forEach((d, i) => { d.imported = true; if (!d.key) d.key = 'u' + Date.now() + '_' + i; });
+    try { localStorage.setItem('tal_imported_decks', JSON.stringify(imported)); } catch (e) { /* storage unavailable */ }
+    try { hiddenDecks = JSON.parse(localStorage.getItem('tal_hidden_decks') || '[]'); } catch (e) { hiddenDecks = []; }
+    decks = imported.concat(decks.filter(d => !hiddenDecks.includes(d.name)));
     renderLists(0, Math.min(2 + imported.length, decks.length - 1));
     $('#myDeck').onchange = deckNote; $('#aiDeck').onchange = deckNote;
     $('#importBtn').onclick = doImport;
@@ -36,7 +39,7 @@
 
 
   /* ---------------- deck import (bottcg.com link / JSON / card list) ---------------- */
-  let imported = [];
+  let imported = [], hiddenDecks = [];
   function renderLists(myIdx, aiIdx) {
     for (const [sel, idx] of [[$('#myDeck'), myIdx], [$('#aiDeck'), aiIdx]]) {
       sel.innerHTML = '';
@@ -162,7 +165,7 @@
           <div class="mcol"><div class="mtabs"><button data-act="tab" data-tab="main" class="${tab === 'main' ? 'on' : ''}">การ์ดหลัก</button><button data-act="tab" data-tab="life" class="${tab === 'life' ? 'on' : ''}">LIFE</button><input id="mgSearch" placeholder="ค้นหา: ชื่อ / รหัส เช่น KD01-002 / สี / Symbol" value="${esc(q)}"></div><div class="mlist tall">${res}</div></div>
         </div>
         <div class="mmsg ${errs.length ? 'bad' : 'ok'}">${errs.length ? esc(errs.slice(0, 4).join(' · ')) : 'เด็คถูกต้องตามกติกา'}</div>
-        <div class="btns"><button class="primary" data-act="save">บันทึกเด็ค</button><button data-act="export">คัดลอกเป็นข้อความ</button>${ed.key ? '<button data-act="remove">ลบเด็คนี้</button>' : ''}<button data-act="close">ปิด</button></div></div>`;
+        <div class="btns"><button class="primary" data-act="save">บันทึกเด็ค</button><button data-act="export">คัดลอกเป็นข้อความ</button>${ed.key ? '<button data-act="remove">ลบเด็คนี้</button>' : '<button data-act="hide" title="ซ่อนเด็คสำเร็จรูปนี้ออกจากรายการ">ซ่อนเด็คนี้</button>'}<button data-act="close">ปิด</button></div></div>`;
       const si = m.querySelector('#mgSearch');
       si.oninput = () => { q = si.value; draw(); };
       m.querySelector('#mgName').oninput = (e) => { ed.name = e.target.value; };
@@ -190,6 +193,13 @@
         const txt = JSON.stringify(o);
         (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => alert('คัดลอกแล้ว วางในช่องนำเข้าเพื่อใช้ซ้ำได้'), () => prompt('คัดลอกข้อความนี้', txt));
         return;
+      }
+      else if (act === 'hide') {
+        if (decks.length <= 3 || !confirm('ซ่อนเด็คนี้ออกจากรายการ? (เด็คสำเร็จรูปไม่ได้ถูกลบถาวร)')) return;
+        hiddenDecks.push(src.name);
+        try { localStorage.setItem('tal_hidden_decks', JSON.stringify(hiddenDecks)); } catch (e) { /* storage unavailable */ }
+        decks = decks.filter(x => x !== src);
+        renderLists(0, Math.min(+$('#aiDeck').value, decks.length - 1)); closeModal(); m.onclick = null; return;
       }
       else if (act === 'remove') {
         if (!confirm('ลบเด็คนี้ออกจากรายการ?')) return;
@@ -339,8 +349,24 @@
     const life = e.target.closest('[data-life]');
     if (life && ui.canLife && ui.onLife && life.dataset.life === '1') { ui.onLife(); return; }
     const card = e.target.closest('#game [data-uid]');
+    if (card && isTouch() && card.closest('#board') && !card.dataset.hidden) { showDetail(+card.dataset.uid); return; }
     if (card && ui.onCard && ui.can.has(+card.dataset.uid)) ui.onCard(+card.dataset.uid);
   });
+  /* touch screens: tapping a card on the board opens a big view (with a button to use it if it is playable) */
+  const isTouch = () => matchMedia('(pointer:coarse)').matches;
+  function showDetail(uid) {
+    const c = game && game.uidMap[uid]; if (!c) return;
+    const can = ui.onCard && ui.can.has(uid);
+    let d = $('#detail'); if (!d) { d = document.createElement('div'); d.id = 'detail'; document.body.appendChild(d); }
+    const pwr = (c.zone === 'avatarZone' || c.zone === 'constructZone') ? `POWER ${game.getPower(c)}` : '';
+    const img = c.id !== 'TOKEN' ? `<img src="img/cards/${esc(c.id)}.webp" alt="">` : '';
+    d.innerHTML = `<div class="dbox">${img}<div class="dtxt"><b>${esc(c.def.name)}</b> ${pwr ? '· ' + pwr : ''}${c.state === 'rested' ? ' · นอน' : ''}<br>${esc(c.def.text || '')}</div><div class="dbtn">${can ? '<button class="primary" id="dUse">เลือกการ์ดนี้</button>' : ''}<button id="dClose">ปิด</button></div></div>`;
+    d.hidden = false;
+    const close = () => { d.hidden = true; d.innerHTML = ''; };
+    d.querySelector('#dClose').onclick = close;
+    d.onclick = (ev) => { if (ev.target === d) close(); };
+    const use = d.querySelector('#dUse'); if (use) use.onclick = () => { close(); ui.onCard(uid); };
+  }
   document.addEventListener('mouseover', (e) => {
     const card = e.target.closest('[data-uid]');
     const pv = $('#preview');
