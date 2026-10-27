@@ -302,3 +302,14 @@ body:has(#menu:not([hidden])) { background:linear-gradient(180deg,#0b0e13d9,#0b0
   .dlg { max-height:96dvh; }
   #menu .mfoot { display:block; font-size:10px; }
 }
+
+/* resting (sideways) cards: rotated width == its slot, so neighbours never overlap */
+body.matmode .zb .card.rested, body.matmode .z-avatar .card.rested { transform:rotate(90deg) scale(.72) !important; margin:0 !important; }
+body.matmode .zb .card.rested.can:hover, body.matmode .z-avatar .card.rested.can:hover { transform:rotate(90deg) scale(.72) !important; }
+body.matmode .zc { gap:3%; }
+body.matmode .z-avatar { justify-content:center; }
+
+#toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 70px); transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; gap:3px; align-items:center; pointer-events:none; opacity:0; transition:opacity .2s; max-width:min(560px,92vw); }
+#toast.on { opacity:1; }
+#toast div { background:#0b0e13e6; color:#f1f3f7; border:1px solid #c9a85c; border-radius:8px; padding:4px 12px; font-size:13px; text-align:center; }
+@media (max-height:520px) { #toast { bottom:8px; left:50%; font-size:11px; } #toast div { font-size:11px; padding:2px 8px; } }

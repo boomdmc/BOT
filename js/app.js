@@ -214,6 +214,18 @@
     draw();
   }
 
+
+  /* short on-screen notice for the things that change the board (so a card never "just disappears") */
+  let toastTimer = null;
+  function toast(m) {
+    if (!/ถูกทำลาย|ต่อสู้:|ถูกยกเลิก|ไม่ถูกทำลาย|ส่งลงนรก|โจมตี|ธรณีสูบ|เนรเทศ|ใช้ .*Magic|สั่งใช้|ทิ้ง |ลด POWER|ยึด/.test(m)) return;
+    let t = $('#toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+    const line = document.createElement('div'); line.textContent = m; t.appendChild(line);
+    while (t.children.length > 3) t.removeChild(t.firstChild);
+    t.classList.add('on'); clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.classList.remove('on'); t.innerHTML = ''; }, 3200);
+  }
+
   /* ---------------- card html ---------------- */
   function cardHtml(c, o) {
     o = o || {};
@@ -459,7 +471,7 @@
       { name: 'AI', main: ai.main, life: ai.life, decide: async (req, g) => { render(); await sleep(req.kind === 'action' || req.kind === 'attack' ? 650 : 250); return aiDecide(req, g); } },
     ];
     game = new TAL.Game(db, setups, {
-      onLog: (m) => { const p = $('#logPanel'); const d = document.createElement('div'); d.textContent = m; p.appendChild(d); p.scrollTop = p.scrollHeight; },
+      onLog: (m) => { const p = $('#logPanel'); const d = document.createElement('div'); d.textContent = m; p.appendChild(d); p.scrollTop = p.scrollHeight; toast(m); },
       onChange: () => render(),
     });
     try {
