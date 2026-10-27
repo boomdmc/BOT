@@ -1,0 +1,315 @@
+'use strict';
+/* Browser UI: human vs AI. The engine asks for decisions; this file renders them. */
+(function () {
+  const TAL = window.TAL;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  let db = null, decks = [], game = null;
+  const ui = { can: new Set(), canLife: false, onCard: null, onLife: null, wait: false, hover: null };
+
+  /* ---------------- data / menu ---------------- */
+  async function load() {
+    const rd = async (f) => (window.TAL_DATA && window.TAL_DATA[f]) || (await fetch('data/' + f)).json();
+    const [defs, abil, patches, sd, bd] = await Promise.all(['card_definitions.json', 'abilities.json', 'ability_patches.json', 'starter_decks.json', 'bot_decks.json'].map(rd));
+    db = TAL.buildDB(defs, abil, patches);
+    const colorTh = { red: 'แดง', blue: 'ฟ้า', green: 'เขียว', purple: 'ม่วง' };
+    for (const [k, v] of Object.entries(sd)) decks.push({ name: 'Structure Deck: ' + v.name + ' (' + (colorTh[k] || k) + ')', main: v.main, life: v.life });
+    for (const b of bd) decks.push({ name: b.name + (b.by ? '  — ' + b.by : ''), main: b.main, life: b.life });
+    for (const sel of [$('#myDeck'), $('#aiDeck')]) {
+      decks.forEach((d, i) => { const o = document.createElement('option'); o.value = i; o.textContent = d.name; sel.appendChild(o); });
+    }
+    $('#myDeck').value = 0; $('#aiDeck').value = Math.min(2, decks.length - 1);
+    const upd = () => {
+      const a = TAL.adaptDeck(db, decks[+$('#myDeck').value], Math.random);
+      const b = TAL.adaptDeck(db, decks[+$('#aiDeck').value], Math.random);
+      $('#deckNote').textContent = `เด็คคุณแทนที่การ์ดที่ยังไม่รองรับ ${a.replaced.length} ใบ · เด็ค AI ${b.replaced.length} ใบ`;
+    };
+    $('#myDeck').onchange = upd; $('#aiDeck').onchange = upd; upd();
+    $('#startBtn').disabled = false; $('#startBtn').textContent = 'เริ่มเกม';
+  }
+
+  /* ---------------- card html ---------------- */
+  function cardHtml(c, o) {
+    o = o || {};
+    if (!c) return '';
+    const hidden = o.hidden || (!o.reveal && c.zone === 'life' && !c.faceUp);
+    const cls = ['card'];
+    if (o.big) cls.push('big');
+    if (c.state === 'rested' && (c.zone === 'avatarZone' || c.zone === 'constructZone')) cls.push('rested');
+    if (ui.can.has(c.uid)) cls.push('can');
+    if (o.sel) cls.push('sel');
+    if (c.zone === 'life' && c.faceUp) cls.push('faceup-life');
+    if (hidden) return `<div class="${cls.join(' ')} back" data-uid="${c.uid}" data-hidden="1"></div>`;
+    let badge = '';
+    if ((c.zone === 'avatarZone' || c.zone === 'constructZone') && game) {
+      const p = game.getPower(c), base = c.def.power || 0;
+      badge += `<span class="pw ${p > base ? 'up' : p < base ? 'down' : ''}">${p}</span>`;
+      if (c.equipped.length) badge += `<span class="eq">+${c.equipped.length}</span>`;
+      if (c.inPartner) badge += `<span class="st">คู่หู</span>`;
+    }
+    const img = c.id !== 'TOKEN' ? `<img class="cimg" src="img/cards/${esc(c.id)}.webp" alt="" data-name="${esc(c.def.name)}">` : `<div class="fallback"><b>${esc(c.def.name)}</b><br>POWER ${c.def.power}<br>Token</div>`;
+    return `<div class="${cls.join(' ')}" data-uid="${c.uid}">${img}${badge}${o.extra || ''}</div>`;
+  }
+  document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (t && t.tagName === 'IMG' && t.classList.contains('cimg')) {
+      const d = document.createElement('div'); d.className = 'fallback'; d.innerHTML = `<b>${esc(t.dataset.name)}</b>`;
+      t.replaceWith(d);
+    }
+  }, true);
+
+  /* ---------------- board render ---------------- */
+  const MAT = { // zone rectangles on the original play-mat art (percent of the 1073x323 image, opponent orientation)
+    deck: [1.7, 5.6, 9.5, 40.9], hell: [1.4, 49.5, 9.8, 46.4], dark: [12.6, 62, 15.4, 34], magic: [13.1, 1.5, 74, 28],
+    avatar: [13.1, 31.9, 74, 27.6], land: [39.6, 66.6, 20, 29.4], construct: [60.6, 63.5, 26.6, 32.5], life: [88.5, 6.8, 9.8, 78.4],
+  };
+  const useMat = () => window.innerHeight >= 600 && window.innerWidth >= 900;
+  const zbox = (k, flip, extra) => {
+    const [l, t, w, h] = MAT[k];
+    const L = flip ? 100 - l - w : l, T = flip ? 100 - t - h : t;
+    return `<div class="zb z-${k}${extra || ''}" style="left:${L}%;top:${T}%;width:${w}%;height:${h}%">`;
+  };
+  function renderMat(pi) {
+    const g = game, pl = g.players[pi], flip = pi === 0;
+    const cards = (list) => list.map(c => cardHtml(c)).join('');
+    const hellTop = pl.hell[pl.hell.length - 1];
+    const canL = pi === 1 && ui.canLife;
+    let h = `<div class="mat-name">${esc(pl.name)} · Deck ${pl.deck.length} · มือ ${pl.hand.length}</div>`;
+    h += `<div class="mat${flip ? ' flip' : ''}">`;
+    h += zbox('deck', flip) + `<div class="card back deckimg"></div><span class="cnt">${pl.deck.length}</span></div>`;
+    h += zbox('hell', flip) + `<a href="#" data-view="hell${pi}" class="viewlink">${hellTop ? cardHtml(hellTop, { reveal: true }) : ''}<span class="cnt">${pl.hell.length}</span></a></div>`;
+    h += zbox('dark', flip) + `<a href="#" data-view="dark${pi}" class="viewlink"><span class="cnt">${pl.dark.length}</span></a></div>`;
+    h += zbox('magic', flip, ' zc') + cards(pl.magicZone) + '</div>';
+    h += zbox('avatar', flip, ' zc') + cards(pl.avatarZone) + '</div>';
+    h += zbox('land', flip, ' zc') + cards(g.land.filter(c => c.ctrl === pi)) + '</div>';
+    h += zbox('construct', flip, ' zc') + cards(pl.constructZone) + '</div>';
+    h += zbox('life', flip, ' zlife' + (canL ? ' can' : '')) + `<div class="lifecol" data-life="${pi}">${pl.life.map(c => cardHtml(c, { reveal: c.faceUp })).join('')}</div></div>`;
+    return h + '</div>';
+  }
+
+  function renderSide(pi) {
+    const g = game, pl = g.players[pi];
+    const el = $('#side' + pi);
+    if (document.body.classList.contains('matmode')) { el.innerHTML = renderMat(pi); return; }
+    const hide = pi === 1;
+    const lifeHtml = pl.life.map(c => cardHtml(c, { reveal: c.faceUp })).join('');
+    const canL = pi === 1 && ui.canLife;
+    const info = `<div class="info"><b>${esc(pl.name)}</b><br>Deck ${pl.deck.length} · มือ ${pl.hand.length}<br>
+      <a href="#" data-view="hell${pi}">นรก ${pl.hell.length}</a> · <a href="#" data-view="dark${pi}">มิติมืด ${pl.dark.length}</a><br>
+      <div class="lifebox target-life${canL ? ' can' : ''}" data-life="${pi}">${lifeHtml}</div></div>`;
+    const row = (label, list) => `<div class="zone"><span class="zl">${label}</span><div class="row">${list.map(c => cardHtml(c)).join('')}</div></div>`;
+    el.innerHTML = info + `<div class="zones">${row('Avatar Zone', pl.avatarZone)}${row('Magic Zone', pl.magicZone)}${row('Construct Zone', pl.constructZone)}</div>`;
+  }
+  function render() {
+    const g = game;
+    if (!g) return;
+    document.body.classList.toggle('matmode', useMat());
+    document.querySelectorAll('#phases span').forEach(s => s.classList.toggle('on', s.dataset.p === g.phase));
+    renderSide(1); renderSide(0);
+    if (!document.body.classList.contains('matmode')) $('#landZone').innerHTML = `<span class="zl">Land Magic Zone</span><div class="row">${g.land.map(c => cardHtml(c)).join('')}</div>`;
+    $('#handArea').innerHTML = g.players[0].hand.map(c => cardHtml(c, { big: true })).join('');
+    const oh = $('#oppHand'); if (oh) oh.innerHTML = g.players[1].hand.map(c => `<div class="card back" data-hidden="1"></div>`).join('');
+    if (!ui.statusFixed) {
+      const who = g.active === 0 ? 'ตาของคุณ' : 'ตาของ AI';
+      $('#status').textContent = g.over ? '' : `เทิร์น ${g.turn} · ${who}${g.phase ? ' · ' + g.phase : ''}${ui.wait ? '' : ' · AI กำลังเล่น…'}`;
+    }
+  }
+  function setStatus(t) { $('#status').textContent = t; ui.statusFixed = !!t; }
+
+  /* ---------------- interaction plumbing ---------------- */
+  document.addEventListener('click', (e) => {
+    const view = e.target.closest('[data-view]');
+    if (view) { e.preventDefault(); showZoneView(view.dataset.view); return; }
+    const life = e.target.closest('[data-life]');
+    if (life && ui.canLife && ui.onLife && life.dataset.life === '1') { ui.onLife(); return; }
+    const card = e.target.closest('#game [data-uid]');
+    if (card && ui.onCard && ui.can.has(+card.dataset.uid)) ui.onCard(+card.dataset.uid);
+  });
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest('[data-uid]');
+    const pv = $('#preview');
+    if (!card || card.dataset.hidden || !game) { pv.hidden = true; return; }
+    const c = game.uidMap[+card.dataset.uid];
+    if (!c) { pv.hidden = true; return; }
+    const pwr = (c.zone === 'avatarZone' || c.zone === 'constructZone') ? ` · POWER ${game.getPower(c)}` : '';
+    pv.innerHTML = `<img src="img/cards/${esc(c.id)}.webp" alt=""><p><b>${esc(c.def.name)}</b>${pwr}\n${esc(c.def.text || '')}</p>`;
+    pv.hidden = false;
+  });
+  function bar(buttons) {
+    const b = $('#actionBar'); b.innerHTML = '';
+    for (const x of buttons) {
+      const btn = document.createElement('button'); btn.textContent = x.label; if (x.cls) btn.className = x.cls;
+      btn.onclick = x.fn; b.appendChild(btn);
+    }
+  }
+  function clearInteract() { ui.can = new Set(); ui.canLife = false; ui.onCard = null; ui.onLife = null; ui.wait = false; bar([]); setStatus(''); }
+  function modal(html) { const m = $('#modal'); m.innerHTML = `<div class="dlg">${html}</div>`; m.hidden = false; return m; }
+  function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
+
+  function showZoneView(key) {
+    const pi = +key.slice(-1), z = key.slice(0, -1);
+    const list = game.players[pi][z];
+    const m = modal(`<h3>${z === 'hell' ? 'นรก' : 'มิติมืด'} ของ ${esc(game.players[pi].name)} (${list.length})</h3><div class="cards">${list.map(c => cardHtml(c, { reveal: true })).join('') || '<span class="hint">ว่าง</span>'}</div><div class="btns"><button id="zv">ปิด</button></div>`);
+    m.querySelector('#zv').onclick = closeModal;
+  }
+
+  /* ---------------- human decisions ---------------- */
+  function humanDecide(req, g) {
+    return new Promise((resolve) => {
+      const done = (v) => { clearInteract(); closeModal(); resolve(v); };
+      ui.wait = true;
+      render();
+      switch (req.kind) {
+        case 'action': return actionReq(req, g, done);
+        case 'attack': return attackReq(req, g, done);
+        case 'target': return targetReq(req, g, done);
+        case 'confirm': return confirmReq(req, done);
+        case 'options': return optionsReq(req, done);
+        case 'respond': return respondReq(req, g, done);
+        case 'pick': case 'pay': return pickReq(req, g, done);
+        default: return done([]);
+      }
+    });
+  }
+
+  function actionReq(req, g, done) {
+    const byCard = {}, extras = [];
+    for (const a of req.actions) { if (a.type === 'endPhase' || a.card == null) extras.push(a); else (byCard[a.card] = byCard[a.card] || []).push(a); }
+    ui.can = new Set(Object.keys(byCard).map(Number));
+    setStatus('ตาของคุณ (Main Phase): คลิกการ์ดที่เรืองแสงเพื่อเล่น หรือกดปุ่มด้านล่าง');
+    ui.onCard = (uid) => {
+      const list = byCard[uid];
+      const run = (a) => done([a.id]);
+      if (list.length === 1 && ['summon', 'build', 'land'].includes(list[0].type)) return run(list[0]);
+      const m = modal(`<h3>เลือกการกระทำ</h3><div class="btns">${list.map((a, i) => `<button data-i="${i}" title="${esc(a.text || '')}">${esc(a.label)}</button>`).join('')}<button data-i="x">ยกเลิก</button></div>${list.map(a => a.text ? `<p class="hint">${esc(a.text)}</p>` : '').join('')}`);
+      m.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.i === 'x') { closeModal(); return; } run(list[+b.dataset.i]); });
+    };
+    bar(extras.map(a => ({ label: a.label, cls: a.type === 'endPhase' ? 'primary' : '', fn: () => done([a.id]) })));
+    render();
+  }
+
+  function attackReq(req, g, done) {
+    const byCard = {}; req.attackers.forEach(a => { byCard[a.card] = a; });
+    const acts = {}; (req.actions || []).forEach(a => { (acts[a.card] = acts[a.card] || []).push(a); });
+    ui.can = new Set(Object.keys(byCard).concat(Object.keys(acts)).map(Number));
+    setStatus('Battle Phase: คลิก Avatar ที่จะโจมตี' + (req.actions && req.actions.length ? ' หรือการ์ดที่สั่งใช้ได้' : ''));
+    ui.onCard = (uid) => {
+      if (acts[uid] && !byCard[uid]) {
+        const list = acts[uid];
+        if (list.length === 1) return done([{ act: list[0].id }]);
+        const m = modal(`<h3>เลือกการกระทำ</h3><div class="btns">${list.map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('')}</div>`);
+        m.querySelectorAll('button').forEach(b => b.onclick = () => done([{ act: list[+b.dataset.i].id }]));
+        return;
+      }
+      if (acts[uid]) {
+        const list = acts[uid];
+        const m = modal(`<h3>เลือกการกระทำ</h3><div class="btns"><button data-i="atk">โจมตี</button>${list.map((a, i) => `<button data-i="${i}">${esc(a.label)}</button>`).join('')}</div>`);
+        m.querySelectorAll('button').forEach(b => b.onclick = () => done(b.dataset.i === 'atk' ? [byCard[uid].id] : [{ act: list[+b.dataset.i].id }]));
+        return;
+      }
+      done([byCard[uid].id]);
+    };
+    bar([{ label: 'จบ Battle Phase', cls: 'primary', fn: () => done([]) }]);
+    render();
+  }
+  function targetReq(req, g, done) {
+    const byCard = {}; let lifeT = null;
+    req.targets.forEach(t => { if (t.card == null) lifeT = t; else byCard[t.card] = t; });
+    ui.can = new Set(Object.keys(byCard).map(Number));
+    ui.canLife = !!lifeT; if (lifeT) ui.onLife = () => done([lifeT.id]);
+    setStatus('เลือกเป้าหมายการโจมตี: Avatar/Construct ของ AI หรือ LIFE (กรอบประ)');
+    ui.onCard = (uid) => done([byCard[uid].id]);
+    bar([]);
+    render();
+  }
+  function confirmReq(req, done) {
+    const m = modal(`<h3>${esc(req.prompt)}</h3><div class="btns"><button class="primary" id="y">ใช่</button><button id="n">ไม่</button></div>`);
+    m.querySelector('#y').onclick = () => done(true); m.querySelector('#n').onclick = () => done(false);
+  }
+  function optionsReq(req, done) {
+    const m = modal(`<h3>${esc(req.prompt)}</h3><div class="btns">${req.options.map((o, i) => `<button data-i="${i}">${esc(o.label)}</button>`).join('')}</div>`);
+    m.querySelectorAll('button').forEach(b => b.onclick = () => done([req.options[+b.dataset.i].id]));
+  }
+  function respondReq(req, g, done) {
+    const m = modal(`<h3>ตอบโต้ได้ — ${esc(req.event || '')}${req.ctxInfo ? ' (' + esc(req.ctxInfo) + ')' : ''}</h3>
+      ${req.options.map((o, i) => `<div class="offer">${cardHtml(g.uidMap[o.card], { reveal: true })}<p><b>${esc(o.label)}</b><br>${esc(o.text)}</p><button data-i="${i}" class="primary">ใช้</button></div>`).join('')}
+      <div class="btns"><button id="skip">ไม่ใช้</button></div>`);
+    m.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => done([req.options[+b.dataset.i].id]));
+    m.querySelector('#skip').onclick = () => done([]);
+  }
+  function pickReq(req, g, done) {
+    const cards = req.cards.map(u => g.uidMap[u]).filter(Boolean);
+    const sel = new Set();
+    const isPay = req.kind === 'pay';
+    const min = isPay ? 1 : (req.min || 0), max = isPay ? 99 : (req.max == null ? cards.length : req.max);
+    const m = modal('');
+    const draw = () => {
+      const chosen = [...sel];
+      const total = isPay ? chosen.reduce((s, u) => s + (req.gems[u] || 0), 0) : 0;
+      const valid = (isPay ? true : (chosen.length >= min && chosen.length <= max)) && (!req.validate || (chosen.length === 0 && !isPay && min === 0) || req.validate(chosen));
+      m.innerHTML = `<div class="dlg"><h3>${esc(req.prompt)}</h3>
+        <div class="hint">${isPay ? `รวม GEM ${total} / ต้องใช้ ${req.cost} (ห้ามเกินจนมีการ์ดที่ทิ้งเพิ่มโดยไม่จำเป็น)` : `เลือก ${chosen.length} / ${min === max ? min : min + '–' + max}`}</div>
+        <div class="cards">${cards.map(c => cardHtml(c, { big: true, reveal: true, sel: sel.has(c.uid), extra: isPay ? `<span class="gemtag">${req.gems[c.uid] || 0}</span>` : '' })).join('') || '<span class="hint">ไม่มีการ์ดให้เลือก</span>'}</div>
+        <div class="btns"><button class="primary" id="ok" ${valid ? '' : 'disabled'}>ตกลง</button>${isPay ? '<button id="cancel">ยกเลิก</button>' : ''}</div></div>`;
+      m.querySelectorAll('.card[data-uid]').forEach(el => el.onclick = () => {
+        const u = +el.dataset.uid;
+        if (sel.has(u)) sel.delete(u); else if (isPay || sel.size < max) sel.add(u);
+        draw();
+      });
+      m.querySelector('#ok').onclick = () => done([...sel]);
+      const cb = m.querySelector('#cancel'); if (cb) cb.onclick = () => done(null);
+    };
+    draw();
+  }
+
+  /* ---------------- game start ---------------- */
+  async function startGame() {
+    const my = TAL.adaptDeck(db, decks[+$('#myDeck').value], Math.random);
+    const ai = TAL.adaptDeck(db, decks[+$('#aiDeck').value], Math.random);
+    $('#menu').hidden = true; $('#game').hidden = false; $('#logPanel').innerHTML = '';
+    const aiDecide = TAL.makeAI(1);
+    const setups = [
+      { name: 'คุณ', main: my.main, life: my.life, isHuman: true, decide: humanDecide },
+      { name: 'AI', main: ai.main, life: ai.life, decide: async (req, g) => { render(); await sleep(req.kind === 'action' || req.kind === 'attack' ? 650 : 250); return aiDecide(req, g); } },
+    ];
+    game = new TAL.Game(db, setups, {
+      onLog: (m) => { const p = $('#logPanel'); const d = document.createElement('div'); d.textContent = m; p.appendChild(d); p.scrollTop = p.scrollHeight; },
+      onChange: () => render(),
+    });
+    try {
+      const res = await game.run();
+      render();
+      const win = res && res.winner === 0;
+      const why = { life: 'LIFE ถูกทำลายครบ', 'deck-out': 'Deck หมด' }[res && res.reason] || '';
+      const m = modal(`<h3>${win ? 'คุณชนะ!' : 'คุณแพ้'}</h3><p class="hint">${esc(why)}</p><div class="btns"><button class="primary" id="again">กลับเมนู</button></div>`);
+      m.querySelector('#again').onclick = () => { closeModal(); $('#game').hidden = true; $('#menu').hidden = false; game = null; };
+    } catch (e) {
+      console.error(e);
+      modal(`<h3>เกิดข้อผิดพลาด</h3><p class="hint">${esc(e && e.message)}</p><div class="btns"><button id="r">กลับเมนู</button></div>`).querySelector('#r').onclick = () => location.reload();
+    }
+  }
+
+  /* touch: long-press a card to preview it */
+  let lp = null;
+  document.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('[data-uid]');
+    if (!card || !game || card.dataset.hidden) return;
+    lp = setTimeout(() => { const c = game.uidMap[+card.dataset.uid]; if (!c) return; const pv = $('#preview');
+      pv.innerHTML = `<img src="img/cards/${esc(c.id)}.webp" alt=""><p><b>${esc(c.def.name)}</b>
+${esc(c.def.text || '')}</p>`; pv.hidden = false; }, 450);
+  }, { passive: true });
+  const endLp = () => { clearTimeout(lp); const pv = $('#preview'); if (pv) setTimeout(() => { pv.hidden = true; }, 150); };
+  document.addEventListener('touchend', endLp, { passive: true }); document.addEventListener('touchcancel', endLp, { passive: true });
+  /* fullscreen + landscape lock where the browser allows it (Android Chrome; iOS Safari does not support it) */
+  $('#fsBtn').onclick = async () => {
+    try { await document.documentElement.requestFullscreen(); } catch (e) { /* ignore */ }
+    try { await screen.orientation.lock('landscape'); } catch (e) { /* ignore */ }
+  };
+  window.addEventListener('resize', () => { if (game) render(); });
+  $('#startBtn').onclick = startGame;
+  $('#logToggle').onclick = () => { const p = $('#logPanel'); p.hidden = !p.hidden; };
+  $('#quitBtn').onclick = () => { if (confirm('ออกจากเกม?')) location.reload(); };
+  load().catch(e => { $('#startBtn').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + e.message; });
+})();
