@@ -236,3 +236,12 @@ body:has(#menu:not([hidden])) { background:#0f1319; }
 #menu .bmline { margin-top:4px; font-size:11px; color:#8a94a6; }
 #menu .bmline a { display:inline-block; margin:0 4px; padding:1px 10px; border:1px dashed #c9a85c; border-radius:12px; color:#e8c776; text-decoration:none; cursor:grab; }
 @media (max-height:560px) { #menu .bmline { display:none; } }
+
+/* menu background artwork, dimmed so the form stays readable */
+body:has(#menu:not([hidden])) { background:#0f1319; }
+#menu { position:relative; background:linear-gradient(180deg,#0b0e13e6 0%,#0b0e13cc 45%,#0b0e13f0 100%),url(../img/ui/menu_bg.webp) center/cover no-repeat !important; }
+#menu select, #menu #importBox textarea { background:#10151cd9; backdrop-filter:blur(2px); }
+/* artwork covers the whole page, form sits on a dim panel */
+body:has(#menu:not([hidden])) { background:linear-gradient(180deg,#0b0e13d9,#0b0e13b3 50%,#0b0e13e6),url(../img/ui/menu_bg.webp) center/cover no-repeat fixed #0f1319; }
+#menu { background:none !important; }
+#menu select, #menu #importBox textarea { background:#0f141bd9; }
