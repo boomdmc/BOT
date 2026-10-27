@@ -1,0 +1,1684 @@
+{
+  "version": 2,
+  "about": "Battle of Talingchan — closed vocabulary for Ability Definitions. Every op/event/condition used in abilities.json MUST exist here. Anything that cannot be expressed uses op 'unsupported' and makes the ability status NEED_IMPLEMENTATION.",
+  "enums": {
+    "side": [
+      "self",
+      "enemy",
+      "both",
+      "any"
+    ],
+    "player": [
+      "self",
+      "enemy",
+      "both",
+      "owner",
+      "controller",
+      "chooser"
+    ],
+    "zone": [
+      "avatarZone",
+      "magicZone",
+      "landZone",
+      "constructZone",
+      "field",
+      "hand",
+      "deck",
+      "hell",
+      "dark",
+      "life",
+      "lifeFaceUp",
+      "lifeFaceDown"
+    ],
+    "destination": [
+      "hand",
+      "ownerHand",
+      "deckTop",
+      "deckBottom",
+      "deckShuffle",
+      "hell",
+      "ownerHell",
+      "dark",
+      "magicZone",
+      "avatarZone",
+      "constructZone",
+      "landZone",
+      "lifeTop",
+      "removedFromGame"
+    ],
+    "state": [
+      "awake",
+      "rested"
+    ],
+    "chooser": [
+      "controller",
+      "opponent",
+      "random",
+      "owner"
+    ],
+    "duration": [
+      "instant",
+      "endOfAttack",
+      "endOfBattle",
+      "endOfTurn",
+      "endOfNextTurn",
+      "endOfOwnNextTurn",
+      "endOfEnemyNextTurn",
+      "untilOwnNextDrawPhase",
+      "whileActive",
+      "whileSourceOnField",
+      "permanent"
+    ],
+    "magicType": [
+      "Normal",
+      "Modification",
+      "React",
+      "Land"
+    ],
+    "cardType": [
+      "Avatar",
+      "Magic",
+      "Construct",
+      "LIFE",
+      "Token"
+    ],
+    "keyword": [
+      "โล่มนุษย์",
+      "สามัคคี",
+      "แทงหลัง",
+      "ลูกฮึด",
+      "เตะไข่",
+      "จุติ",
+      "คำสั่งเสีย",
+      "พอดี",
+      "สอดแนม",
+      "ธรณีสูบ",
+      "เนรเทศ",
+      "เซ่นไหว้",
+      "เลือกปฏิบัติ",
+      "เทิร์นละครั้ง",
+      "ต่อเนื่อง",
+      "สั่งใช้",
+      "อัตโนมัติ",
+      "คู่หู",
+      "กฏร้าน"
+    ],
+    "phase": [
+      "draw",
+      "main",
+      "battle",
+      "end"
+    ],
+    "turn": [
+      "own",
+      "enemy",
+      "any"
+    ],
+    "ref": [
+      "this",
+      "host",
+      "attacker",
+      "attackTarget",
+      "battleOpponent",
+      "triggerCard",
+      "triggerSource",
+      "summonedCard",
+      "equippedCards",
+      "partner",
+      "revealedLife",
+      "costPaidCards",
+      "lastMoved"
+    ],
+    "compare": [
+      ">=",
+      "<=",
+      "==",
+      ">",
+      "<",
+      "!="
+    ],
+    "abilityKind": [
+      "keyword",
+      "triggered",
+      "activated",
+      "continuous",
+      "spell",
+      "react",
+      "equipRestriction",
+      "rule",
+      "partner",
+      "lifeReveal"
+    ],
+    "status": [
+      "ready",
+      "draft",
+      "need_impl"
+    ]
+  },
+  "shapes": {
+    "Filter": {
+      "type": "cardType[]",
+      "magicType": "magicType[]",
+      "symbol": "string[]",
+      "color": "string[] (Thai colour: แดง ฟ้า ม่วง เขียว)",
+      "nameIs": "string[] exact card name (no quotes on card)",
+      "nameHas": "string[] word in name (quoted on card, rule NAME/NM-01)",
+      "nameNot": "string[]",
+      "textHas": "string[] (\"มี X อยู่ใน Text Box\")",
+      "cost": "{min?,max?,eq?,lt?,gt?} — ค่าเป็น int หรือ Amount",
+      "gem": "{min?,max?,eq?,lt?,gt?} — ค่าเป็น int หรือ Amount",
+      "power": "{min?,max?,eq?,lt?,gt?} — ค่าเป็น int หรือ Amount",
+      "state": "state",
+      "onlyOne": "bool (false = ยกเว้น Only #1)",
+      "isToken": "bool",
+      "equipped": "bool",
+      "notThis": "bool",
+      "distinctNames": "bool",
+      "symbolNot": "string[] — symbol ที่ยกเว้น",
+      "colorNot": "string[]",
+      "typeNot": "cardType[]",
+      "hasKeyword": "keyword[] (รวมคีย์เวิร์ดที่ได้รับ)",
+      "equippedTo": "Filter ของ host ที่การ์ดนี้สวมอยู่",
+      "equippedWith": "{filter: Filter, min?: int}",
+      "printedOwner": "side",
+      "ownedBy": "side",
+      "inPartner": "bool",
+      "donjai": "bool",
+      "noText": "bool",
+      "battling": "bool",
+      "summonedFrom": "zone",
+      "summonedThisTurn": "bool",
+      "distinctSymbols": "bool (ทั้งชุดที่เลือก)",
+      "sameAs": "{ref, fields: [name|symbol|color|power|cost]}",
+      "notSameAs": "{ref, fields: [...]}",
+      "anyOf": "Filter[] (OR)",
+      "nameHasNot": "string[] คำที่ต้องไม่อยู่ในชื่อ"
+    },
+    "Selector": {
+      "ref": "ref | 'chosen:<as>' (ภายในความสามารถเดียว) | 'card:<remember>' (ข้ามความสามารถของการ์ดใบเดียวกัน)",
+      "side": "side",
+      "zone": "zone",
+      "filter": "Filter",
+      "count": "int | 'all' | {upTo:int} | {min:int, max:int}",
+      "chooser": "chooser",
+      "as": "string — name to refer back via ref 'chosen:<as>'",
+      "totalCost": "{max: int|Amount}",
+      "remember": "string — จำการ์ดที่เลือกไว้บน Card Instance ของการ์ดต้นทาง (ใช้ข้ามความสามารถของการ์ดใบเดียวกัน) อ้างด้วย ref \"card:<key>\"",
+      "top": "int — เลือก N ใบบนสุด (ใช้กับ zone deck)",
+      "lowest": "'cost'|'power'|'gem' — เลือกใบที่ค่าต่ำสุด (เสมอกัน = chooser เลือก)",
+      "highest": "'cost'|'power'|'gem' — เลือกใบที่ค่าสูงสุด",
+      "zones": "zone[] — เลือกจากหลาย Zone (เช่น [\"hand\",\"field\"])"
+    },
+    "Amount": "int | {count: Selector, times?: int (คูณ — 'ใบละ N'), per?: int (หาร ปัดลง — 'ทุก N ใบ' DIV-01), max?: int, plus?: int} | {stat: 'power'|'cost'|'gem', of: Selector} | {lifeFaceUp: player, times?: int} | {handCount: player} | {x: 'chosen number'} | {stat: 'printedPower'|'basePower', of} | {minus: [Amount, Amount]} | {sum: [Amount...]} (stat ของ Selector หลายใบ = ผลรวม)",
+    "Ops": "array of Op objects {op: <name>, ...params}",
+    "Cond": "object {cond: <name>, ...params}"
+  },
+  "events": {
+    "self.summoned": {
+      "params": {
+        "paid": "bool|'any' (จุติ = true)",
+        "exactGem": "bool (พอดี)",
+        "byAbilityOf": "Filter",
+        "fromZone": "zone",
+        "asJuti": "bool"
+      }
+    },
+    "self.declaresAttack": {
+      "params": {
+        "targetKind": "'avatar'|'construct'|'life'|'any'",
+        "targetFilter": "Filter"
+      }
+    },
+    "self.attackTargeted": {
+      "params": {}
+    },
+    "self.battles": {
+      "params": {
+        "opponentFilter": "Filter"
+      }
+    },
+    "self.battleEnds": {
+      "params": {}
+    },
+    "self.destroysInBattle": {
+      "params": {
+        "opponentFilter": "Filter"
+      }
+    },
+    "self.wouldBeDestroyed": {
+      "params": {
+        "cause": "'battle'|'ability'|'any'"
+      }
+    },
+    "self.destroyed": {
+      "params": {
+        "cause": "'battle'|'ability'|'any'",
+        "fromZone": "zone",
+        "bySource": "Filter",
+        "bySide": "side"
+      }
+    },
+    "self.toHell": {
+      "params": {
+        "cause": "'mill'|'discard'|'cost'|'destroy'|'any'",
+        "sourceFilter": "Filter",
+        "bySide": "side"
+      }
+    },
+    "self.usedAsCost": {
+      "params": {
+        "forFilter": "Filter",
+        "costKind": "'summon'|'ability'|'any'"
+      }
+    },
+    "self.scouted": {
+      "params": {}
+    },
+    "self.revealedByAttack": {
+      "params": {},
+      "about": "LIFE Card: ทำงานตาม LIFE-02 (หงายจากการโจมตี หรือความเสียหายต่อ LIFE) — Engine เลื่อนไปทำตอนเริ่ม Main Phase ถัดไปตาม MAIN-04"
+    },
+    "self.revealedByDamage": {
+      "params": {}
+    },
+    "self.equipped": {
+      "params": {
+        "hostFilter": "Filter"
+      }
+    },
+    "self.leavesField": {
+      "params": {}
+    },
+    "self.unityReceived": {
+      "params": {
+        "fromFilter": "Filter"
+      }
+    },
+    "self.unityGiven": {
+      "params": {
+        "toFilter": "Filter"
+      }
+    },
+    "self.backstabGiven": {
+      "params": {
+        "toFilter": "Filter"
+      }
+    },
+    "self.partnerFormed": {
+      "params": {}
+    },
+    "self.abilityUsed": {
+      "params": {
+        "keyword": "keyword"
+      }
+    },
+    "host.declaresAttack": {
+      "params": {
+        "targetKind": "string"
+      }
+    },
+    "host.battles": {
+      "params": {}
+    },
+    "host.destroysInBattle": {
+      "params": {}
+    },
+    "host.destroyed": {
+      "params": {}
+    },
+    "any.avatarSummoned": {
+      "params": {
+        "side": "side",
+        "filter": "Filter"
+      }
+    },
+    "any.attackDeclared": {
+      "params": {
+        "side": "side",
+        "attackerFilter": "Filter",
+        "targetKind": "string",
+        "targetFilter": "Filter"
+      }
+    },
+    "any.attackRedirected": {
+      "params": {
+        "side": "side"
+      }
+    },
+    "any.avatarWouldBeDestroyed": {
+      "params": {
+        "side": "side",
+        "filter": "Filter",
+        "cause": "string"
+      }
+    },
+    "any.avatarDestroyed": {
+      "params": {
+        "side": "side",
+        "filter": "Filter",
+        "cause": "string",
+        "destroyerFilter": "Filter",
+        "bySide": "side"
+      }
+    },
+    "any.magicUsed": {
+      "params": {
+        "side": "side",
+        "magicType": "magicType[]",
+        "filter": "Filter"
+      }
+    },
+    "any.abilityUsed": {
+      "params": {
+        "side": "side",
+        "sourceType": "cardType[]",
+        "keyword": "keyword[]",
+        "filter": "Filter"
+      }
+    },
+    "any.cardsMilled": {
+      "params": {
+        "side": "side"
+      }
+    },
+    "any.lifeRevealed": {
+      "params": {
+        "side": "side",
+        "byAttack": "bool",
+        "attacker": "Selector"
+      }
+    },
+    "any.cardDrawn": {
+      "params": {
+        "side": "side",
+        "outsideDrawPhase": "bool"
+      }
+    },
+    "any.leavesField": {
+      "params": {
+        "side": "side",
+        "filter": "Filter"
+      }
+    },
+    "phase.start": {
+      "params": {
+        "phase": "phase",
+        "turn": "turn"
+      }
+    },
+    "phase.end": {
+      "params": {
+        "phase": "phase",
+        "turn": "turn"
+      }
+    },
+    "turn.end": {
+      "params": {
+        "turn": "turn"
+      }
+    },
+    "window.default": {
+      "params": {},
+      "about": "React Magic ที่ไม่ระบุช่วงเวลา — ใช้ได้ตาม MAG-R2 (ตอบโต้การกระทำของฝ่ายตรงข้าม / ก่อนฝ่ายตรงข้ามเปลี่ยน Phase)"
+    },
+    "any.battles": {
+      "params": {
+        "side": "side",
+        "filter": "Filter"
+      },
+      "about": "Avatar ที่ตรง filter เข้าช่วงต่อสู้ (BAT-1/2); ref triggerCard = Avatar นั้น"
+    },
+    "any.wouldBeDestroyed": {
+      "params": {
+        "side": "side",
+        "filter": "Filter (รวม Construct)",
+        "cause": "string",
+        "bySide": "side"
+      }
+    },
+    "any.wouldLeaveField": {
+      "params": {
+        "side": "side",
+        "filter": "Filter",
+        "cause": "'destroy'|'ability'|'any'",
+        "bySide": "side"
+      },
+      "about": "LEAVE-01 ทุกแบบ (ไม่รวมเปลี่ยนการควบคุม/ไป Magic Zone)"
+    },
+    "self.wouldLeaveField": {
+      "params": {
+        "cause": "string",
+        "bySide": "side"
+      }
+    },
+    "host.wouldLeaveField": {
+      "params": {
+        "cause": "string",
+        "bySide": "side"
+      }
+    },
+    "host.wouldBeDestroyed": {
+      "params": {
+        "cause": "string"
+      }
+    },
+    "host.leavesField": {
+      "params": {}
+    },
+    "host.attackTargeted": {
+      "params": {}
+    },
+    "self.controlChanged": {
+      "params": {}
+    },
+    "self.addedToHand": {
+      "params": {
+        "fromZone": "zone",
+        "cause": "'draw'|'ability'|'any'",
+        "byFilter": "Filter",
+        "duringPhase": "phase"
+      }
+    },
+    "any.cardsWouldMoveToHand": {
+      "params": {
+        "side": "side",
+        "fromZone": "zone",
+        "bySourceType": "cardType[]"
+      }
+    },
+    "any.stateChanged": {
+      "params": {
+        "side": "side",
+        "filter": "Filter",
+        "to": "state"
+      }
+    },
+    "any.partnerFormed": {
+      "params": {
+        "side": "side",
+        "filter": "Filter"
+      }
+    },
+    "any.keywordUsed": {
+      "params": {
+        "side": "side",
+        "keyword": "keyword[]",
+        "filter": "Filter"
+      }
+    },
+    "any.destroysInBattle": {
+      "params": {
+        "side": "side",
+        "filter": "Filter"
+      }
+    },
+    "self.equipReceived": {
+      "params": {
+        "filter": "Filter"
+      },
+      "about": "มีการ์ดมาสวมใส่ให้การ์ดใบนี้"
+    },
+    "any.cardsDiscarded": {
+      "params": {
+        "side": "side",
+        "byAbility": "bool"
+      }
+    },
+    "any.targeted": {
+      "params": {
+        "side": "side",
+        "filter": "Filter",
+        "sourceType": "cardType[]",
+        "bySide": "side"
+      }
+    },
+    "state.becomesTrue": {
+      "params": {
+        "cond": "Cond"
+      },
+      "about": "state-based trigger: ทำงานทันทีเมื่อเงื่อนไขกลายเป็นจริง"
+    },
+    "self.built": {
+      "params": {
+        "paid": "bool"
+      },
+      "about": "Construct ใบนี้ถูกก่อสร้าง"
+    }
+  },
+  "conditions": {
+    "count": {
+      "params": {
+        "of": "Selector",
+        "op": "compare",
+        "n": "Amount"
+      }
+    },
+    "compare": {
+      "params": {
+        "left": "Amount",
+        "op": "compare",
+        "right": "Amount"
+      }
+    },
+    "landIs": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "thisState": {
+      "params": {
+        "state": "state"
+      }
+    },
+    "thisInZone": {
+      "params": {
+        "zone": "zone"
+      }
+    },
+    "thisHasEquip": {
+      "params": {
+        "filter": "Filter",
+        "min": "int"
+      }
+    },
+    "thisIsEquipped": {
+      "params": {
+        "hostFilter": "Filter"
+      }
+    },
+    "thisInPartner": {
+      "params": {}
+    },
+    "thisSummonedBy": {
+      "params": {
+        "sourceFilter": "Filter",
+        "paid": "bool",
+        "exactGem": "bool"
+      }
+    },
+    "turn": {
+      "params": {
+        "whose": "turn"
+      }
+    },
+    "phase": {
+      "params": {
+        "phase": "phase"
+      }
+    },
+    "critical": {
+      "params": {
+        "player": "player"
+      }
+    },
+    "lifeFaceUp": {
+      "params": {
+        "player": "player",
+        "op": "compare",
+        "n": "int"
+      }
+    },
+    "magicUsedThisTurn": {
+      "params": {
+        "player": "player",
+        "magicType": "magicType",
+        "used": "bool"
+      }
+    },
+    "milledThisTurn": {
+      "params": {
+        "player": "player",
+        "thisCard": "bool"
+      }
+    },
+    "hostMatches": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "triggerMatches": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "resultOf": {
+      "params": {
+        "as": "string",
+        "success": "bool"
+      }
+    },
+    "not": {
+      "params": {
+        "of": "Cond"
+      }
+    },
+    "all": {
+      "params": {
+        "of": "Cond[]"
+      }
+    },
+    "any": {
+      "params": {
+        "of": "Cond[]"
+      }
+    },
+    "firstOwnTurn": {
+      "params": {}
+    },
+    "turnNumber": {
+      "params": {
+        "op": "compare",
+        "n": "int"
+      }
+    },
+    "eventCount": {
+      "params": {
+        "event": "'summon'|'destroy'|'returnHellToDeck'|'cardPlayed'|'magicUsed'|'attack'",
+        "side": "side",
+        "filter": "Filter",
+        "cause": "string",
+        "bySource": "Filter",
+        "scope": "'turn'|'phase'|'game'",
+        "op": "compare",
+        "n": "Amount"
+      }
+    },
+    "firstCardThisPhase": {
+      "params": {
+        "player": "player"
+      }
+    },
+    "isPrime": {
+      "params": {
+        "n": "Amount"
+      }
+    },
+    "triggerSourceMatches": {
+      "params": {
+        "filter": "Filter",
+        "side": "side"
+      }
+    },
+    "triggerTargets": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "onFieldSince": {
+      "params": {
+        "zone": "zone",
+        "minTurns": "int"
+      }
+    },
+    "inBattle": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "declaredMatches": {
+      "params": {
+        "as": "string",
+        "of": "Selector",
+        "field": "'cardType'|'symbol'|'name'|'number'|'cost'"
+      }
+    },
+    "partnerFormedThisTurn": {
+      "params": {
+        "player": "player"
+      }
+    }
+  },
+  "ops": {
+    "draw": {
+      "params": {
+        "player": "player",
+        "n": "Amount"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "mill": {
+      "params": {
+        "player": "player",
+        "n": "Amount"
+      },
+      "required": [
+        "n"
+      ],
+      "kw": "ธรณีสูบ"
+    },
+    "discard": {
+      "params": {
+        "player": "player",
+        "n": "Amount",
+        "filter": "Filter",
+        "chooser": "chooser",
+        "all": "bool",
+        "as": "string",
+        "gemTotal": "{min?,exact?}"
+      },
+      "required": []
+    },
+    "scout": {
+      "params": {
+        "player": "player",
+        "n": "Amount",
+        "fromBottom": "bool (กฏร้าน)",
+        "pick": "[{filter: Filter, count: int|{upTo}, to: destination, state?: state, as?: string}] (pick ยังรับ asJuti?: bool, chooser?: chooser, summon?: bool)",
+        "rest": "destination | 'deckBottomAnyOrder' | 'deckTopAnyOrder'"
+      },
+      "required": [
+        "n"
+      ],
+      "kw": "สอดแนม"
+    },
+    "search": {
+      "params": {
+        "player": "player",
+        "from": "zone[]",
+        "filter": "Filter",
+        "count": "int|{upTo}|'all'",
+        "to": "destination",
+        "state": "state",
+        "reveal": "bool",
+        "shuffle": "bool",
+        "as": "string"
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "move": {
+      "params": {
+        "target": "Selector",
+        "to": "destination",
+        "faceDown": "bool"
+      },
+      "required": [
+        "target",
+        "to"
+      ]
+    },
+    "destroy": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "exile": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ],
+      "kw": "เนรเทศ"
+    },
+    "sacrifice": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ],
+      "kw": "เซ่นไหว้"
+    },
+    "shuffleDeck": {
+      "params": {
+        "player": "player"
+      },
+      "required": []
+    },
+    "revealHand": {
+      "params": {
+        "player": "player",
+        "random": "int"
+      },
+      "required": []
+    },
+    "giveCards": {
+      "params": {
+        "from": "Selector",
+        "toPlayer": "player"
+      },
+      "required": [
+        "from",
+        "toPlayer"
+      ]
+    },
+    "summon": {
+      "params": {
+        "target": "Selector",
+        "side": "side",
+        "state": "state",
+        "asJuti": "bool (อัญเชิญ จุติ)",
+        "free": "bool",
+        "as": "string",
+        "asExactGem": "bool",
+        "payCost": "bool"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "summonToken": {
+      "params": {
+        "token": "{name, color, cost, gem, power, symbol, abilities?}",
+        "count": "int",
+        "side": "side",
+        "state": "state"
+      },
+      "required": [
+        "token",
+        "count"
+      ]
+    },
+    "summonThis": {
+      "params": {
+        "from": "zone",
+        "state": "state"
+      },
+      "required": []
+    },
+    "build": {
+      "params": {
+        "target": "Selector",
+        "free": "bool"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "playLand": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "equip": {
+      "params": {
+        "card": "Selector",
+        "host": "Selector"
+      },
+      "required": [
+        "card",
+        "host"
+      ]
+    },
+    "unequip": {
+      "params": {
+        "target": "Selector",
+        "to": "destination"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "takeControl": {
+      "params": {
+        "target": "Selector",
+        "state": "state",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "tap": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "untap": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "modifyPower": {
+      "params": {
+        "target": "Selector",
+        "amount": "Amount (negative = ลด)",
+        "duration": "duration",
+        "sign": "1|-1 (when amount is an expression)"
+      },
+      "required": [
+        "target",
+        "amount"
+      ]
+    },
+    "setPower": {
+      "params": {
+        "target": "Selector",
+        "value": "Amount",
+        "duration": "duration",
+        "base": "bool"
+      },
+      "required": [
+        "target",
+        "value"
+      ]
+    },
+    "grantKeyword": {
+      "params": {
+        "target": "Selector",
+        "keyword": "keyword",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "keyword"
+      ]
+    },
+    "grantAbility": {
+      "params": {
+        "target": "Selector",
+        "ability": "inline ability object (same schema)",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "ability"
+      ]
+    },
+    "removeAbilities": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "changeName": {
+      "params": {
+        "target": "Selector",
+        "name": "string",
+        "mode": "'replace'|'add'",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "name"
+      ]
+    },
+    "changeSymbol": {
+      "params": {
+        "target": "Selector",
+        "symbol": "string",
+        "mode": "'replace'|'add'",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "symbol"
+      ]
+    },
+    "changeColor": {
+      "params": {
+        "target": "Selector",
+        "color": "string|'all'",
+        "mode": "'replace'|'add'",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "color"
+      ]
+    },
+    "modifyCost": {
+      "params": {
+        "target": "Selector",
+        "amount": "Amount",
+        "set": "int | Amount",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "protect": {
+      "params": {
+        "target": "Selector",
+        "from": "'destroy'|'battleDestroy'|'abilityDestroy'|'abilities'|'enemyAbilities'|'targeting'|'leaveField'|'controlChange'|'magic'|'enemyMagic'|'enemyReactMagic'|'magicDestroy'|'enemyAbilityDestroy'|'symbolChange'|'powerDecrease'|'leaveHell'|'enemyLeaveField'",
+        "duration": "duration",
+        "sourceFilter": "Filter",
+        "exceptSource": "Filter"
+      },
+      "required": [
+        "target",
+        "from"
+      ]
+    },
+    "preventDestroy": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "restrict": {
+      "params": {
+        "target": "Selector | omit when 'player' used",
+        "player": "player",
+        "action": "'attack'|'attackLife'|'beAttacked'|'beTargeted'|'useReact'|'useMagic'|'useAbilities'|'summon'|'untap'|'equip'|'draw'|'leaveField'|'unrevealLife'|'tap'|'deckToHand'|'useKeyword'|'build'|'playLand'|'leaveHell'",
+        "filter": "Filter",
+        "duration": "duration",
+        "maxPerTurn": "int",
+        "exceptFilter": "Filter (อนุญาตเฉพาะที่ตรง)",
+        "keyword": "keyword[]",
+        "sameNameAs": "Selector"
+      },
+      "required": [
+        "action"
+      ]
+    },
+    "cancelAttack": {
+      "params": {},
+      "required": []
+    },
+    "redirectAttack": {
+      "params": {
+        "to": "Selector"
+      },
+      "required": [
+        "to"
+      ]
+    },
+    "damageLife": {
+      "params": {
+        "player": "player",
+        "n": "Amount"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "revealLife": {
+      "params": {
+        "player": "player",
+        "n": "Amount",
+        "choose": "bool",
+        "triggers": "bool"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "unrevealLife": {
+      "params": {
+        "player": "player",
+        "n": "Amount",
+        "choose": "bool"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "negate": {
+      "params": {
+        "target": "'triggering' | Selector",
+        "what": "'ability'|'magic'|'any'|'attack'"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "addMagicQuota": {
+      "params": {
+        "player": "player",
+        "magicType": "magicType",
+        "n": "int",
+        "filter": "Filter — โควตาพิเศษใช้ได้เฉพาะการ์ดที่ตรง"
+      },
+      "required": [
+        "magicType",
+        "n"
+      ]
+    },
+    "useLifeAbility": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "if": {
+      "params": {
+        "cond": "Cond",
+        "then": "Ops",
+        "else": "Ops"
+      },
+      "required": [
+        "cond",
+        "then"
+      ]
+    },
+    "choose": {
+      "params": {
+        "chooser": "chooser",
+        "options": "[{label, conditions?, effects: Ops}]",
+        "pick": "int"
+      },
+      "required": [
+        "options"
+      ]
+    },
+    "optional": {
+      "params": {
+        "effects": "Ops"
+      },
+      "required": [
+        "effects"
+      ]
+    },
+    "repeat": {
+      "params": {
+        "times": "Amount",
+        "effects": "Ops"
+      },
+      "required": [
+        "times",
+        "effects"
+      ]
+    },
+    "forEach": {
+      "params": {
+        "target": "Selector",
+        "effects": "Ops (use ref 'chosen:each')"
+      },
+      "required": [
+        "target",
+        "effects"
+      ]
+    },
+    "delayed": {
+      "params": {
+        "at": "'nextOwnMainPhase'|'nextOwnBattlePhase'|'nextOwnDrawPhase'|'endOfTurn'|'endOfOwnNextTurn'|'endOfEnemyNextTurn'|'endOfBattle' | 'afterTurns' | 'nthEndPhase' | 'thisEndPhase' | 'nextOwnEndPhase'",
+        "effects": "Ops",
+        "n": "int (afterTurns / nthEndPhase)"
+      },
+      "required": [
+        "at",
+        "effects"
+      ]
+    },
+    "random": {
+      "params": {
+        "kind": "'coin'|'dice' | 'diceEach' (ทุกผู้เล่นทอย)",
+        "outcomes": "[{when: 'heads'|'tails'|'odd'|'even'|int[], effects: Ops}]"
+      },
+      "required": [
+        "kind",
+        "outcomes"
+      ]
+    },
+    "declare": {
+      "params": {
+        "what": "'cardType'|'symbol'|'name'|'number'",
+        "as": "string"
+      },
+      "required": [
+        "what"
+      ]
+    },
+    "winGame": {
+      "params": {
+        "player": "player"
+      },
+      "required": []
+    },
+    "unsupported": {
+      "params": {
+        "text": "string (exact clause from card)",
+        "proposedOp": "string",
+        "reason": "string"
+      },
+      "required": [
+        "text",
+        "reason"
+      ]
+    },
+    "becomeModification": {
+      "params": {
+        "host": "Selector (Avatar ที่จะสวม — ถ้าการ์ดไม่ระบุ ให้ใส่ตามที่ตีความและเขียน notes)"
+      },
+      "required": [],
+      "about": "การ์ดใบนี้ (Magic ที่เพิ่งใช้) อยู่ต่อใน Magic Zone ในฐานะ Modification Magic"
+    },
+    "replaceDraw": {
+      "params": {
+        "player": "player",
+        "effects": "Ops"
+      },
+      "required": [
+        "effects"
+      ],
+      "about": "แทนที่การจั่วปกติใน Draw Phase ด้วย effects"
+    },
+    "revealFromHand": {
+      "params": {
+        "player": "player",
+        "filter": "Filter",
+        "count": "int",
+        "chooser": "chooser",
+        "as": "string"
+      },
+      "required": [],
+      "about": "แสดงการ์ดจากมือ (อ้างต่อด้วย chosen:as)"
+    },
+    "consumeMagicQuota": {
+      "params": {
+        "player": "player",
+        "magicType": "magicType"
+      },
+      "required": [
+        "magicType"
+      ],
+      "about": "MAG-X2 \"นับว่าเป็นการใช้ Magic ประเภท X\""
+    },
+    "giveControl": {
+      "params": {
+        "target": "Selector",
+        "toPlayer": "player",
+        "state": "state",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "toPlayer"
+      ]
+    },
+    "swapCostPower": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "createTrigger": {
+      "params": {
+        "event": "event name",
+        "params": "object",
+        "conditions": "Cond[]",
+        "effects": "Ops",
+        "duration": "duration",
+        "limit": "{per,n}"
+      },
+      "required": [
+        "event",
+        "effects"
+      ],
+      "about": "trigger ระดับผู้เล่น (ไม่ผูกกับการ์ด) มีอายุตาม duration"
+    },
+    "replaceDestination": {
+      "params": {
+        "target": "Selector",
+        "from": "'destroy'|'any'",
+        "to": "destination",
+        "duration": "duration"
+      },
+      "required": [
+        "target",
+        "to"
+      ]
+    },
+    "preventLeaveField": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "substituteLeaveField": {
+      "params": {
+        "target": "Selector",
+        "substitute": "Selector"
+      },
+      "required": [
+        "substitute"
+      ]
+    },
+    "lifeAttackDamage": {
+      "params": {
+        "target": "Selector",
+        "n": "int",
+        "duration": "duration"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "forceAttack": {
+      "params": {
+        "target": "Selector",
+        "player": "player",
+        "duration": "duration"
+      },
+      "required": []
+    },
+    "forceBattle": {
+      "params": {
+        "a": "Selector",
+        "b": "Selector",
+        "tap": "bool"
+      },
+      "required": [
+        "a",
+        "b"
+      ]
+    },
+    "battleAll": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "copyAbilities": {
+      "params": {
+        "from": "Selector",
+        "to": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "resolveAbility": {
+      "params": {
+        "target": "Selector",
+        "keyword": "keyword",
+        "index": "int"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "endTurn": {
+      "params": {},
+      "required": []
+    },
+    "changeGemColor": {
+      "params": {
+        "target": "Selector",
+        "color": "string|null",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "summonThisAs": {
+      "params": {
+        "stats": "{type,cost,gem,power,symbol,color}",
+        "state": "state"
+      },
+      "required": [
+        "stats"
+      ]
+    },
+    "setHandSize": {
+      "params": {
+        "player": "player",
+        "n": "int"
+      },
+      "required": [
+        "n"
+      ]
+    },
+    "swapHandDeckTop": {
+      "params": {
+        "player": "player",
+        "n": "int"
+      },
+      "required": []
+    },
+    "useMagicEffect": {
+      "params": {
+        "target": "Selector"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "searchLife": {
+      "params": {
+        "player": "player",
+        "filter": "Filter",
+        "then": "Ops",
+        "shuffleRest": "bool"
+      },
+      "required": [
+        "filter"
+      ]
+    },
+    "invertPowerReduction": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "waiveAbilityCost": {
+      "params": {
+        "scope": "Selector",
+        "costOp": "string",
+        "duration": "duration"
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "modifyZoneLimit": {
+      "params": {
+        "player": "player",
+        "avatars": "int",
+        "total": "int",
+        "duration": "duration"
+      },
+      "required": []
+    },
+    "trimZone": {
+      "params": {
+        "player": "player",
+        "zone": "zone",
+        "to": "int",
+        "chooser": "chooser"
+      },
+      "required": [
+        "zone",
+        "to"
+      ]
+    },
+    "ignoreEquipRestrictions": {
+      "params": {
+        "target": "Selector",
+        "duration": "duration"
+      },
+      "required": []
+    },
+    "suppressLifeAbilities": {
+      "params": {
+        "player": "player",
+        "duration": "duration"
+      },
+      "required": []
+    },
+    "revealDeckTop": {
+      "params": {
+        "player": "player",
+        "duration": "duration"
+      },
+      "required": []
+    },
+    "modifyKeywordAmount": {
+      "params": {
+        "player": "player",
+        "scope": "Selector (การ์ดที่ความสามารถได้รับผล)",
+        "keyword": "'สอดแนม'|'ธรณีสูบ'",
+        "plus": "int",
+        "duration": "duration"
+      },
+      "required": [
+        "keyword",
+        "plus"
+      ],
+      "about": "เพิ่มจำนวนใบของ สอดแนม/ธรณีสูบ ที่เกิดจากความสามารถการ์ด"
+    },
+    "forceKeywordUse": {
+      "params": {
+        "player": "player",
+        "keyword": "keyword",
+        "duration": "duration"
+      },
+      "required": [
+        "keyword"
+      ]
+    }
+  },
+  "ruleOps": {
+    "rule.deckLimit": {
+      "params": {
+        "n": "int"
+      }
+    },
+    "rule.nameAlso": {
+      "params": {
+        "name": "string",
+        "quoted": "bool (true = ชื่อเสริม NAME-01, false = ชื่อหลักที่ 2 NAME-02)"
+      }
+    },
+    "rule.symbolAlso": {
+      "params": {
+        "symbol": "string"
+      }
+    },
+    "rule.colorAlso": {
+      "params": {
+        "color": "string|'all'"
+      }
+    },
+    "rule.costPaymentOnlyFor": {
+      "params": {
+        "filter": "Filter"
+      }
+    },
+    "rule.gemAs": {
+      "params": {
+        "count": "int",
+        "color": "string|null (null = ไร้สี)",
+        "when": "Filter of the avatar being summoned"
+      }
+    },
+    "rule.anyGemColorPaysThis": {
+      "params": {}
+    },
+    "rule.cannotPlayFromHand": {
+      "params": {}
+    },
+    "rule.summonOnlyBy": {
+      "params": {
+        "source": "'thisAbility'|Filter"
+      }
+    },
+    "rule.cannotBeSummonedFrom": {
+      "params": {
+        "zone": "zone"
+      }
+    },
+    "rule.controlLimit": {
+      "params": {
+        "name": "string",
+        "n": "int"
+      }
+    },
+    "rule.abilityUseLimit": {
+      "params": {
+        "name": "string",
+        "per": "'turn'|'game'",
+        "n": "int",
+        "extra": "string"
+      }
+    },
+    "rule.costIs": {
+      "params": {
+        "n": "int",
+        "while": "Cond"
+      }
+    },
+    "rule.cannotEquip": {
+      "params": {}
+    },
+    "rule.abilitiesUsableFrom": {
+      "params": {
+        "zone": "zone"
+      }
+    },
+    "rule.zoneSameNameLimit": {
+      "params": {
+        "zone": "zone",
+        "n": "int"
+      }
+    },
+    "rule.deckRequires": {
+      "params": {
+        "filter": "Filter",
+        "count": "int"
+      }
+    },
+    "rule.deckForbids": {
+      "params": {
+        "filter": "Filter",
+        "except": "Filter"
+      }
+    },
+    "rule.disableOwnAbilities": {
+      "params": {
+        "scope": "Selector",
+        "except": "Filter"
+      }
+    },
+    "rule.ignoresMagicQuota": {
+      "params": {
+        "magicType": "magicType"
+      },
+      "about": "การ์ดใบนี้ใช้ได้แม้โควตาประเภทนั้นของเทิร์นหมดแล้ว"
+    },
+    "rule.countsAsNForCost": {
+      "params": {
+        "n": "int"
+      }
+    },
+    "rule.payGemWithPower": {
+      "params": {
+        "scope": "Selector"
+      }
+    }
+  },
+  "abilityKindNotes": {
+    "activated": "อาจมี trigger = หน้าต่างเวลาที่สั่งใช้ได้ (ACT-1) เช่น \"เมื่อ Avatar ต่อสู้ สั่งใช้จากบนมือ\""
+  }
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Battle of Talingchan - เล่นกับ AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Itim&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=8">
+</head>
+<body>
+<div id="rotate"><div style="font-size:56px">&#x21BB;</div><div>กรุณาหมุนเครื่องเป็นแนวนอน</div><div class="note">เกมนี้เล่นได้เฉพาะแนวนอน</div></div>
+<div id="menu" class="screen">
+  <img class="mascot l" src="img/ui/yak_khiao.webp" alt=""><img class="mascot r" src="img/ui/racha_ngu.webp" alt="">
+  <h1>Battle of Talingchan</h1>
+  <p class="sub">โหมดเดียว: ต่อสู้กับ AI · กติกาอ้างอิง Rule Book Ver. 3.2</p>
+  <div class="menu-grid">
+    <div>
+      <h3>เด็คของคุณ</h3>
+      <select id="myDeck" size="12"></select>
+    </div>
+    <div>
+      <h3>เด็คของ AI</h3>
+      <select id="aiDeck" size="12"></select>
+    </div>
+  </div>
+  <p id="deckNote" class="note"></p>
+  <button id="startBtn" class="primary" disabled>กำลังโหลดข้อมูล…</button>
+  <button id="fsBtn">เล่นเต็มจอ (ล็อกแนวนอนบนมือถือ)</button>
+  <p class="note">การ์ดที่ระบบยังไม่รองรับความสามารถ จะถูกแทนที่ด้วยการ์ดชนิดใกล้เคียงโดยอัตโนมัติ</p>
+</div>
+
+<div id="game" class="screen" hidden>
+  <div id="topbar">
+    <div id="phases"><span data-p="draw">Draw</span><span data-p="main">Main</span><span data-p="battle">Battle</span><span data-p="end">End</span></div>
+    <div id="status"></div>
+    <button id="logToggle">Log</button>
+    <button id="quitBtn">ออกจากเกม</button>
+  </div>
+  <div id="oppHand"></div>
+  <div id="board">
+    <div class="side opp" id="side1"></div>
+    <div id="mid"><div id="landZone"></div></div>
+    <div class="side me" id="side0"></div>
+  </div>
+  <div id="handArea"></div>
+  <div id="actionBar"></div>
+  <div id="logPanel" hidden></div>
+  <div id="preview" hidden></div>
+</div>
+
+<div id="modal" hidden></div>
+
+<script src="data/bundle.js?v=8"></script>
+<script src="js/core.js?v=8"></script>
+<script src="js/dsl.js?v=8"></script>
+<script src="js/ops.js?v=8"></script>
+<script src="js/flow.js?v=8"></script>
+<script src="js/ai.js?v=8"></script>
+<script src="js/decks.js?v=8"></script>
+<script src="js/app.js?v=8"></script>
+</body>
+</html>
